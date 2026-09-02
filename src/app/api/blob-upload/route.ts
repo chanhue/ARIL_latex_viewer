@@ -1,4 +1,6 @@
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { AUTH_COOKIE, labPassword, verifySession } from '@/lib/auth.mjs'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -40,13 +42,27 @@ export async function POST(request: Request) {
     const result = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: ALLOWED_CONTENT_TYPES,
-        maximumSizeInBytes: MAX_BYTES,
-        // Paths are already namespaced by a per-presentation UUID, and the
-        // file name has to survive verbatim for link matching to work.
-        addRandomSuffix: false,
-      }),
+      onBeforeGenerateToken: async () => {
+        // Vercel's docs are emphatic about this: a token handed out without an
+        // authorisation check lets anyone upload to the store, at our expense.
+        // The middleware already guards /api/*, but this route mints
+        // credentials, so it re-checks rather than trusting a matcher.
+        const password = labPassword()
+        if (password) {
+          const token = (await cookies()).get(AUTH_COOKIE)?.value
+          if (!token || !(await verifySession(token, password))) {
+            throw new Error('Not authenticated')
+          }
+        }
+
+        return {
+          allowedContentTypes: ALLOWED_CONTENT_TYPES,
+          maximumSizeInBytes: MAX_BYTES,
+          // Paths are already namespaced by a per-presentation UUID, and the
+          // file name has to survive verbatim for link matching to work.
+          addRandomSuffix: false,
+        }
+      },
       // Nothing to do: the record is written by POST /api/presentations once
       // every file has landed.
       onUploadCompleted: async () => {},

@@ -133,19 +133,37 @@ LAB_PASSWORD=우리랩비밀번호
 
 ### 2. Blob 스토어 붙이기 (파일 저장용)
 
-1. 프로젝트 → **Storage** 탭 → **Create Database** → **Blob**
-2. 이름은 아무거나 (예: `aril-slides`) → **Create**
-3. 만들어진 스토어에서 **Connect Project** 로 이 프로젝트에 연결한다.
-   환경은 Production / Preview / Development 를 **전부** 체크
-4. Settings → Environment Variables 에 `BLOB_READ_WRITE_TOKEN` 이 생겼는지 확인
+1. 프로젝트 → 사이드바 **Storage** → **Create Database** → **Blob**
+2. **Continue** 를 누르면 접근 수준을 묻는다. 반드시 **Public** 을 고른다
+3. 이름은 아무거나 (예: `aril-slides`) → **Create a new Blob store**
+4. 토큰을 넣을 환경을 고른다. Production / Preview 는 기본 선택되어 있고,
+   로컬에서 `vercel env pull` 로 받아 쓸 생각이면 **Development** 도 체크한다
+
+> **Public을 골라야 하는 이유.** 이 앱은 슬라이드와 영상을 `<canvas>` 와 `<video>` 로
+> 브라우저에서 직접 불러온다. Private 스토어는 파일마다 서명된 URL을 서버에서 발급받아야
+> 하는데, 지금 구조는 저장된 URL을 그대로 쓰기 때문에 Private으로 만들면 동작하지 않는다.
+> 대신 파일 URL은 로그인 뒤에 있지 않다 — [접근 제어](#접근-제어)의 한계 항목 참고.
+
+연결하면 환경변수 세 개가 자동으로 생긴다.
+
+| 변수 | 용도 |
+| --- | --- |
+| `BLOB_STORE_ID` | 스토어 식별자 |
+| `VERCEL_OIDC_TOKEN` | 서버 측 접근용 단기 토큰 (자동 갱신) |
+| `BLOB_READ_WRITE_TOKEN` | 장기 토큰. **브라우저 직접 업로드 토큰 발급에 필요** |
+
+이 앱은 `BLOB_READ_WRITE_TOKEN` 의 존재 여부로 업로드 방식을 가른다. 셋 다 자동으로
+들어오므로 직접 넣을 것은 없다.
 
 ### 3. Neon Postgres 붙이기 (목록 저장용)
 
 1. 같은 **Storage** 탭 → **Create Database** → **Neon** (Serverless Postgres)
 2. 리전은 가까운 곳을 고른다 (Singapore 또는 Tokyo)
 3. **Connect Project** 로 연결
-4. 환경변수에 `DATABASE_URL` 이 생겼는지 확인한다. `POSTGRES_URL`, `PGHOST` 등이 함께
-   생기지만 이 앱이 보는 것은 `DATABASE_URL` 하나뿐이다
+4. 환경변수에 `DATABASE_URL` 이 생겼는지 확인한다. `DATABASE_URL_UNPOOLED`, `PGHOST`,
+   `POSTGRES_*` (구버전 호환용) 등이 함께 생기지만 이 앱이 보는 것은 `DATABASE_URL`
+   하나뿐이다. 이건 PgBouncer 를 거치는 풀링된 연결 문자열이고, 서버리스 환경에서
+   쓰기에 맞는 쪽이다
 
 테이블은 첫 요청 때 `CREATE TABLE IF NOT EXISTS` 로 자동 생성된다. SQL을 직접 실행할
 일은 없다.
@@ -173,8 +191,9 @@ LAB_PASSWORD=우리랩비밀번호
 ### 그 밖에 알아둘 것
 
 - **`LAB_PASSWORD` 를 반드시 설정한다.** 설정하지 않으면 주소를 아는 사람은 누구나
-  자료를 보고 올릴 수 있다. Settings → Environment Variables 에서 추가한 뒤 재배포하면
-  된다. 자세한 내용은 위의 [접근 제어](#접근-제어) 참고
+  자료를 보고 올릴 수 있고, 더 나쁘게는 `/api/blob-upload` 가 **아무에게나 Blob 업로드
+  토큰을 내준다** — 남의 파일이 우리 스토어에 쌓이고 요금이 나간다. Settings →
+  Environment Variables 에서 추가한 뒤 재배포한다. [접근 제어](#접근-제어) 참고
 - 무료 티어는 랩 규모에 충분하지만 Blob은 **저장 용량과 전송량에 한도**가 있다. 큰 영상을
   계속 쌓을 거라면 Storage 탭에서 사용량을 가끔 확인하는 게 좋다
 - 함수 실행 시간 제한은 신경 쓸 필요 없다. 파일은 브라우저에서 Blob으로 직접 가고,
