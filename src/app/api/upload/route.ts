@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getMeeting } from '@/lib/db'
 import { fillSlot } from '@/lib/slots'
-import { putFile, safeFileName } from '@/lib/storage'
+import { putFile, safeFileName, usingVercelBlob } from '@/lib/storage'
 import { sanitizeSegment, storageKey } from '@/lib/meeting.mjs'
 import type { StoredFile } from '@/lib/types'
 
@@ -17,11 +17,28 @@ function extensionOf(name: string) {
 }
 
 /**
+ * Vercel's filesystem is read-only, so this route cannot work there. Say so
+ * plainly instead of letting the write fail deep inside and surfacing as a
+ * generic "could not save" — the fix is a configuration change, and the
+ * message should name it.
+ */
+function misconfigured(): string | null {
+  if (!process.env.VERCEL) return null
+  if (!usingVercelBlob) {
+    return 'Vercel에 Blob 스토어가 연결되어 있지 않아 파일을 저장할 수 없습니다. Storage 탭에서 Blob(Public)을 추가한 뒤 재배포해 주세요.'
+  }
+  return null
+}
+
+/**
  * Multipart upload into a person's slot. Used when the app is running against
  * local disk; on Vercel the browser uploads to Blob directly instead, because
  * a serverless function may only receive 4.5MB of request body.
  */
 export async function POST(request: Request) {
+  const problem = misconfigured()
+  if (problem) return NextResponse.json({ error: problem }, { status: 503 })
+
   let form: FormData
   try {
     form = await request.formData()
@@ -100,6 +117,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ id: slot.id }, { status: 201 })
   } catch (err) {
     console.error('upload failed', err)
-    return NextResponse.json({ error: '저장 중 오류가 발생했습니다.' }, { status: 500 })
+    const detail = err instanceof Error ? err.message : String(err)
+    // Read-only filesystem is the one failure here with an actionable cause.
+    if (/EROFS|read-only/i.test(detail)) {
+      return NextResponse.json(
+        { error: '파일을 저장할 수 없습니다. 이 환경은 디스크 쓰기가 불가능합니다 (Blob 스토어 연결 필요).' },
+        { status: 503 },
+      )
+    }
+    return NextResponse.json({ error: `저장 중 오류가 발생했습니다: ${detail}` }, { status: 500 })
   }
 }
