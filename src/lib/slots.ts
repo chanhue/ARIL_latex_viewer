@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { addPresentation, listPresentations, updatePresentation } from '@/lib/db'
+import { deleteStoredFiles } from '@/lib/storage'
 import { sanitizeSegment } from '@/lib/meeting.mjs'
 import type { Presentation, StoredFile } from '@/lib/types'
 
@@ -23,24 +24,59 @@ export async function findSlot(
  * Put a person's files into their slot, creating the slot if this is the first
  * time they have uploaded.
  *
- * Re-uploading replaces what was there. That is the behaviour people expect
- * when they notice a typo ten minutes before the meeting.
+ * `keepPdf` and `keepVideoNames` say which of the files already there survive.
+ * That is what makes re-uploading a partial edit — swap one clip, leave the
+ * slides alone — instead of an all-or-nothing replacement. A newly uploaded
+ * file with the same name as a kept one wins, since that is plainly an
+ * intentional overwrite.
+ *
+ * Files that end up referenced by nothing are deleted from storage; otherwise
+ * every correction would leave a copy behind that nobody can reach or clean up.
  */
 export async function fillSlot(options: {
   meetingId: string
   presenter: string
-  pdf: StoredFile
+  pdf: StoredFile | null
   videos: StoredFile[]
-}): Promise<Presentation> {
+  keepPdf?: boolean
+  keepVideoNames?: string[]
+}): Promise<Presentation | { error: string }> {
   const existing = await findSlot(options.meetingId, options.presenter)
   const now = new Date().toISOString()
 
+  const keepPdf = options.keepPdf ?? false
+  const keepNames = new Set((options.keepVideoNames ?? []).map((name) => name.toLowerCase()))
+
+  const survivingPdf = keepPdf ? (existing?.pdf ?? null) : null
+  const pdf = options.pdf ?? survivingPdf
+  if (!pdf) return { error: 'PDF 파일이 필요합니다.' }
+
+  const incomingNames = new Set(options.videos.map((video) => video.name.toLowerCase()))
+  const keptVideos = (existing?.videos ?? []).filter(
+    (video) =>
+      keepNames.has(video.name.toLowerCase()) && !incomingNames.has(video.name.toLowerCase()),
+  )
+  const videos = [...keptVideos, ...options.videos]
+
   if (existing) {
+    const stillUsed = new Set([pdf.url, ...videos.map((video) => video.url)])
+    const orphaned = [existing.pdf, ...existing.videos].filter(
+      (file): file is StoredFile => Boolean(file) && !stillUsed.has(file!.url),
+    )
+
     const updated = await updatePresentation(existing.id, {
       presenter: options.presenter,
-      pdf: options.pdf,
-      videos: options.videos,
+      pdf,
+      videos,
     })
+
+    // After the record, never before: a file deleted while the row still points
+    // at it is a broken page, whereas an undeleted file is only clutter.
+    if (updated && orphaned.length > 0) {
+      await deleteStoredFiles(orphaned).catch((err) =>
+        console.error('failed to remove replaced files', err),
+      )
+    }
     if (updated) return updated
   }
 
@@ -48,8 +84,8 @@ export async function fillSlot(options: {
     id: randomUUID(),
     meetingId: options.meetingId,
     presenter: options.presenter,
-    pdf: options.pdf,
-    videos: options.videos,
+    pdf,
+    videos,
     createdAt: now,
     updatedAt: now,
   }

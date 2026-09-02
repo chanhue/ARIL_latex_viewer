@@ -69,7 +69,11 @@ export default async function UploadPage({
       <UploadForm
         mode={mode}
         meeting={meeting}
-        knownPresenters={presentations.map((p) => p.presenter)}
+        slots={presentations.map((p) => ({
+          presenter: p.presenter,
+          pdf: p.pdf,
+          videos: p.videos,
+        }))}
         initialPresenter={presenter ?? ''}
       />
 

@@ -361,6 +361,13 @@ body:has(.login-page) .site-header nav { display: none; }
 }
 .file-list button:hover { color: var(--danger); }
 .file-list button:disabled { opacity: 0.35; cursor: not-allowed; }
+/* Files already in the slot. A row marked for deletion stays visible, struck
+   through, so an accidental click can be undone before saving. */
+.existing-files li { background: transparent; box-shadow: none; border: 1px solid var(--border); }
+.existing-files li.dropped { opacity: 0.5; border-style: dashed; }
+.existing-files li.dropped code { text-decoration: line-through; }
+.existing-files li.dropped button { color: var(--accent); }
+
 .file-progress {
   position: absolute;
   left: 0;

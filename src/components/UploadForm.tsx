@@ -1,8 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
-import { storageKey } from '@/lib/meeting.mjs'
+import { useEffect, useMemo, useState } from 'react'
+import { sanitizeSegment, storageKey } from '@/lib/meeting.mjs'
 import type { Meeting, StoredFile } from '@/lib/types'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -21,6 +21,12 @@ import type { Meeting, StoredFile } from '@/lib/types'
  */
 export type UploadMode = 'blob' | 'multipart'
 
+export type ExistingSlot = {
+  presenter: string
+  pdf: StoredFile | null
+  videos: StoredFile[]
+}
+
 function formatSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -29,12 +35,14 @@ function formatSize(bytes: number) {
 export function UploadForm({
   mode,
   meeting,
-  knownPresenters,
+  slots,
   initialPresenter,
 }: {
   mode: UploadMode
   meeting: Meeting
-  knownPresenters: string[]
+  /** Everyone in this meeting who already has files, so the panel can follow
+      the name field as it is edited. */
+  slots: ExistingSlot[]
   initialPresenter: string
 }) {
   const router = useRouter()
@@ -45,6 +53,28 @@ export function UploadForm({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [progress, setProgress] = useState<Record<string, number>>({})
+
+  // Marked for deletion, applied when the form is saved.
+  const [dropPdf, setDropPdf] = useState(false)
+  const [droppedVideos, setDroppedVideos] = useState<string[]>([])
+
+  const existing = useMemo(() => {
+    const key = sanitizeSegment(presenter).toLowerCase()
+    if (!key) return null
+    return slots.find((slot) => sanitizeSegment(slot.presenter).toLowerCase() === key) ?? null
+  }, [presenter, slots])
+
+  // Typing a different name means a different person's files; anything marked
+  // for deletion on the previous one no longer applies.
+  useEffect(() => {
+    setDropPdf(false)
+    setDroppedVideos([])
+  }, [existing?.presenter])
+
+  const keepPdf = Boolean(existing?.pdf) && !dropPdf
+  const keptVideoNames = (existing?.videos ?? [])
+    .filter((video) => !droppedVideos.includes(video.name))
+    .map((video) => video.name)
 
   const totalSize = useMemo(
     () => (pdf?.size ?? 0) + videos.reduce((sum, v) => sum + v.size, 0),
@@ -94,7 +124,7 @@ export function UploadForm({
   const submitViaBlob = async () => {
     // Sequential: parallel uploads of several hundred MB just fight each other
     // for the same uplink and make the progress bars meaningless.
-    const storedPdf = await uploadDirect(pdf as File, 'pdf')
+    const storedPdf = pdf ? await uploadDirect(pdf, 'pdf') : null
     const storedVideos: StoredFile[] = []
     for (const video of videos) storedVideos.push(await uploadDirect(video, 'video'))
 
@@ -104,8 +134,10 @@ export function UploadForm({
       body: JSON.stringify({
         meetingId: meeting.id,
         presenter,
-        pdf: storedPdf,
+        pdf: storedPdf ?? undefined,
         videos: storedVideos,
+        keepPdf,
+        keepVideos: keptVideoNames,
       }),
     })
     const payload = await response.json().catch(() => ({}))
@@ -119,7 +151,9 @@ export function UploadForm({
     const body = new FormData()
     body.set('meetingId', meeting.id)
     body.set('presenter', presenter)
-    body.set('pdf', pdf as File)
+    body.set('keepPdf', keepPdf ? '1' : '0')
+    for (const name of keptVideoNames) body.append('keepVideos', name)
+    if (pdf) body.set('pdf', pdf)
     for (const video of videos) body.append('videos', video)
 
     const response = await fetch('/api/upload', { method: 'POST', body })
@@ -136,7 +170,7 @@ export function UploadForm({
       setError('이름을 입력해 주세요.')
       return
     }
-    if (!pdf) {
+    if (!pdf && !keepPdf) {
       setError('PDF 파일을 선택해 주세요.')
       return
     }
@@ -155,6 +189,22 @@ export function UploadForm({
 
   const percentFor = (name: string) => (mode === 'blob' && busy ? progress[name] : undefined)
 
+  const existingRow = (file: StoredFile, dropped: boolean, toggle: () => void) => (
+    <li key={file.url} className={dropped ? 'dropped' : undefined}>
+      <code>{file.name}</code>
+      <span>{formatSize(file.size)}</span>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={toggle}
+        title={dropped ? '삭제 취소' : '삭제'}
+        aria-label={`${file.name} ${dropped ? '삭제 취소' : '삭제'}`}
+      >
+        {dropped ? '↺' : '✕'}
+      </button>
+    </li>
+  )
+
   return (
     <form className="form" onSubmit={submit}>
       <label className="field">
@@ -167,8 +217,8 @@ export function UploadForm({
           required
         />
         <datalist id="known-presenters">
-          {knownPresenters.map((name) => (
-            <option key={name} value={name} />
+          {slots.map((slot) => (
+            <option key={slot.presenter} value={slot.presenter} />
           ))}
         </datalist>
         <small>
@@ -176,19 +226,42 @@ export function UploadForm({
         </small>
       </label>
 
+      {existing && (existing.pdf || existing.videos.length > 0) && (
+        <div className="field">
+          <span>현재 올라와 있는 파일</span>
+          <ul className="file-list existing-files">
+            {existing.pdf && existingRow(existing.pdf, dropPdf, () => setDropPdf((v) => !v))}
+            {existing.videos.map((video) =>
+              existingRow(video, droppedVideos.includes(video.name), () =>
+                setDroppedVideos((current) =>
+                  current.includes(video.name)
+                    ? current.filter((name) => name !== video.name)
+                    : [...current, video.name],
+                ),
+              ),
+            )}
+          </ul>
+          <small>
+            ✕ 로 표시한 파일은 저장할 때 삭제됩니다. 같은 이름으로 새로 올리면 덮어씁니다.
+          </small>
+        </div>
+      )}
+
       <label className="field">
         <span>발표 자료 (PDF)</span>
         <input
           type="file"
           accept="application/pdf,.pdf"
           onChange={(e) => setPdf(e.target.files?.[0] ?? null)}
-          required
+          required={!keepPdf}
         />
-        {pdf && (
+        {pdf ? (
           <small>
             {pdf.name} · {formatSize(pdf.size)}
             {percentFor(pdf.name) !== undefined && ` · ${percentFor(pdf.name)}%`}
           </small>
+        ) : (
+          keepPdf && <small>고르지 않으면 위의 PDF를 그대로 둡니다.</small>
         )}
       </label>
 
@@ -233,9 +306,9 @@ export function UploadForm({
       {error && <p className="form-error">{error}</p>}
 
       <div className="form-actions">
-        {totalSize > 0 && <span className="muted">전체 {formatSize(totalSize)}</span>}
+        {totalSize > 0 && <span className="muted">올릴 파일 {formatSize(totalSize)}</span>}
         <button type="submit" className="button button-primary" disabled={busy}>
-          {busy ? '올리는 중…' : '올리고 열기'}
+          {busy ? '올리는 중…' : existing ? '저장하고 열기' : '올리고 열기'}
         </button>
       </div>
     </form>

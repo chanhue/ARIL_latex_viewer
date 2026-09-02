@@ -72,7 +72,9 @@ export async function POST(request: Request) {
 
   /* ---- empty slot ---- */
 
-  if (payload.pdf === undefined || payload.pdf === null) {
+  // Explicit rather than inferred from a missing pdf: "only changing the
+  // videos" also arrives without one, and must not be mistaken for this.
+  if (payload.slotOnly === true) {
     if (await findSlot(meetingId, presenter)) {
       return NextResponse.json({ error: '이미 등록된 이름입니다.' }, { status: 409 })
     }
@@ -89,8 +91,18 @@ export async function POST(request: Request) {
     )
   }
 
-  const pdf = parseFile(payload.pdf)
-  if (!pdf) return NextResponse.json({ error: 'PDF 정보가 올바르지 않습니다.' }, { status: 400 })
+  const keepPdf = payload.keepPdf === true
+  const keepVideoNames = Array.isArray(payload.keepVideos)
+    ? payload.keepVideos.map((name) => String(name))
+    : []
+
+  const pdf = payload.pdf ? parseFile(payload.pdf) : null
+  if (payload.pdf && !pdf) {
+    return NextResponse.json({ error: 'PDF 정보가 올바르지 않습니다.' }, { status: 400 })
+  }
+  if (!pdf && !keepPdf) {
+    return NextResponse.json({ error: 'PDF 파일이 필요합니다.' }, { status: 400 })
+  }
 
   const rawVideos = Array.isArray(payload.videos) ? payload.videos : []
   const videos: StoredFile[] = []
@@ -101,7 +113,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const slot = await fillSlot({ meetingId, presenter, pdf, videos })
+    const slot = await fillSlot({ meetingId, presenter, pdf, videos, keepPdf, keepVideoNames })
+    if ('error' in slot) return NextResponse.json({ error: slot.error }, { status: 400 })
     return NextResponse.json({ id: slot.id }, { status: 201 })
   } catch (err) {
     console.error('failed to record presentation', err)

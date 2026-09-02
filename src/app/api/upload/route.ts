@@ -52,6 +52,9 @@ export async function POST(request: Request) {
   const meetingId = String(form.get('meetingId') ?? '')
   const presenter = String(form.get('presenter') ?? '').trim()
   const pdf = form.get('pdf')
+  // Which of the files already in this slot should survive.
+  const keepPdf = form.get('keepPdf') === '1'
+  const keepVideoNames = form.getAll('keepVideos').map((value) => String(value))
 
   const meeting = await getMeeting(meetingId)
   if (!meeting) return NextResponse.json({ error: '랩미팅을 찾을 수 없습니다.' }, { status: 404 })
@@ -60,10 +63,11 @@ export async function POST(request: Request) {
   if (!sanitizeSegment(presenter)) {
     return NextResponse.json({ error: '이름으로 쓸 수 없는 문자입니다.' }, { status: 400 })
   }
-  if (!(pdf instanceof File) || pdf.size === 0) {
+  const newPdf = pdf instanceof File && pdf.size > 0 ? pdf : null
+  if (!newPdf && !keepPdf) {
     return NextResponse.json({ error: 'PDF 파일을 선택해 주세요.' }, { status: 400 })
   }
-  if (extensionOf(pdf.name) !== 'pdf') {
+  if (newPdf && extensionOf(newPdf.name) !== 'pdf') {
     return NextResponse.json({ error: '발표 자료는 PDF만 올릴 수 있습니다.' }, { status: 400 })
   }
 
@@ -100,7 +104,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const storedPdf = await store(pdf, 'pdf')
+    const storedPdf = newPdf ? await store(newPdf, 'pdf') : null
     // Sequential rather than Promise.all: a few hundred MB of clips buffered
     // in memory at once is how a small box runs out of RAM.
     const storedVideos: StoredFile[] = []
@@ -111,7 +115,10 @@ export async function POST(request: Request) {
       presenter,
       pdf: storedPdf,
       videos: storedVideos,
+      keepPdf,
+      keepVideoNames,
     })
+    if ('error' in slot) return NextResponse.json({ error: slot.error }, { status: 400 })
     return NextResponse.json({ id: slot.id }, { status: 201 })
   } catch (err) {
     console.error('upload failed', err)

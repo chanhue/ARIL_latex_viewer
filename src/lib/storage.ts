@@ -86,6 +86,42 @@ export function localPathFor(segments: string[]): string | null {
  * folder is removed outright, which also sweeps up anything the database lost
  * track of.
  */
+/**
+ * Delete individual files that a slot no longer references.
+ *
+ * Locally the public URL is reversible back to a path, which is how a single
+ * file can be removed without knowing the folder it came from.
+ */
+export async function deleteStoredFiles(files: { url: string }[]): Promise<void> {
+  if (files.length === 0) return
+
+  if (usingVercelBlob) {
+    const { del } = await import('@vercel/blob')
+    await del(files.map((file) => file.url), { token: blobToken() ?? undefined })
+    return
+  }
+
+  await Promise.all(
+    files.map(async (file) => {
+      const prefix = '/api/files/'
+      if (!file.url.startsWith(prefix)) return
+      const segments = file.url
+        .slice(prefix.length)
+        .split('/')
+        .map((segment) => {
+          try {
+            return decodeURIComponent(segment)
+          } catch {
+            return segment
+          }
+        })
+      const target = localPathFor(segments)
+      if (!target) return
+      await fs.rm(target, { force: true })
+    }),
+  )
+}
+
 export async function deleteFolder(prefix: string, urls: string[]): Promise<void> {
   if (usingVercelBlob) {
     const { del } = await import('@vercel/blob')
