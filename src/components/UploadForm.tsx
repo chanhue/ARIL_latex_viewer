@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
-import type { StoredFile } from '@/lib/types'
+import { storageKey } from '@/lib/meeting.mjs'
+import type { Meeting, StoredFile } from '@/lib/types'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -14,26 +15,32 @@ import type { StoredFile } from '@/lib/types'
  *               function may only receive 4.5MB of request body.
  *   'multipart' everything is posted to /api/upload, which writes to disk.
  *               The local default.
+ *
+ * Either way the files land under `<meeting folder>/<presenter>/`, with videos
+ * in a `figs/` subfolder.
  */
 export type UploadMode = 'blob' | 'multipart'
-
-function today() {
-  const now = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
-}
 
 function formatSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-export function UploadForm({ mode }: { mode: UploadMode }) {
+export function UploadForm({
+  mode,
+  meeting,
+  knownPresenters,
+  initialPresenter,
+}: {
+  mode: UploadMode
+  meeting: Meeting
+  knownPresenters: string[]
+  initialPresenter: string
+}) {
   const router = useRouter()
 
+  const [presenter, setPresenter] = useState(initialPresenter)
   const [title, setTitle] = useState('')
-  const [presenter, setPresenter] = useState('')
-  const [date, setDate] = useState(today)
   const [pdf, setPdf] = useState<File | null>(null)
   const [videos, setVideos] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
@@ -59,9 +66,17 @@ export function UploadForm({ mode }: { mode: UploadMode }) {
 
   /* ------------------------------------------------- browser -> Blob */
 
-  const uploadDirect = async (id: string, file: File): Promise<StoredFile> => {
+  const uploadDirect = async (file: File, kind: 'pdf' | 'video'): Promise<StoredFile> => {
+    const key = storageKey({
+      meetingFolder: meeting.folder,
+      presenter,
+      fileName: file.name,
+      kind,
+    })
+    if (!key) throw new Error(`'${file.name}' 의 저장 경로를 만들 수 없습니다.`)
+
     const { upload } = (await import('@vercel/blob/client')) as any
-    const blob = await upload(`${id}/${file.name}`, file, {
+    const blob = await upload(key, file, {
       access: 'public',
       handleUploadUrl: '/api/blob-upload',
       contentType: file.type || undefined,
@@ -78,18 +93,22 @@ export function UploadForm({ mode }: { mode: UploadMode }) {
   }
 
   const submitViaBlob = async () => {
-    const id = crypto.randomUUID()
-
     // Sequential: parallel uploads of several hundred MB just fight each other
     // for the same uplink and make the progress bars meaningless.
-    const storedPdf = await uploadDirect(id, pdf as File)
+    const storedPdf = await uploadDirect(pdf as File, 'pdf')
     const storedVideos: StoredFile[] = []
-    for (const video of videos) storedVideos.push(await uploadDirect(id, video))
+    for (const video of videos) storedVideos.push(await uploadDirect(video, 'video'))
 
     const response = await fetch('/api/presentations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, title, presenter, date, pdf: storedPdf, videos: storedVideos }),
+      body: JSON.stringify({
+        meetingId: meeting.id,
+        presenter,
+        title,
+        pdf: storedPdf,
+        videos: storedVideos,
+      }),
     })
     const payload = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(payload.error ?? '저장에 실패했습니다.')
@@ -100,9 +119,9 @@ export function UploadForm({ mode }: { mode: UploadMode }) {
 
   const submitViaMultipart = async () => {
     const body = new FormData()
-    body.set('title', title)
+    body.set('meetingId', meeting.id)
     body.set('presenter', presenter)
-    body.set('date', date)
+    body.set('title', title)
     body.set('pdf', pdf as File)
     for (const video of videos) body.append('videos', video)
 
@@ -116,6 +135,10 @@ export function UploadForm({ mode }: { mode: UploadMode }) {
     event.preventDefault()
     setError('')
 
+    if (!presenter.trim()) {
+      setError('이름을 입력해 주세요.')
+      return
+    }
     if (!pdf) {
       setError('PDF 파일을 선택해 주세요.')
       return
@@ -126,6 +149,7 @@ export function UploadForm({ mode }: { mode: UploadMode }) {
     try {
       const id = mode === 'blob' ? await submitViaBlob() : await submitViaMultipart()
       router.push(`/p/${id}`)
+      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : '업로드에 실패했습니다.')
       setBusy(false)
@@ -137,25 +161,32 @@ export function UploadForm({ mode }: { mode: UploadMode }) {
   return (
     <form className="form" onSubmit={submit}>
       <label className="field">
-        <span>제목</span>
+        <span>이름</span>
+        <input
+          value={presenter}
+          onChange={(e) => setPresenter(e.target.value)}
+          list="known-presenters"
+          placeholder="김찬희"
+          required
+        />
+        <datalist id="known-presenters">
+          {knownPresenters.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
+        <small>
+          저장 위치: <code>{meeting.folder}/{presenter.trim() || '이름'}/</code>
+        </small>
+      </label>
+
+      <label className="field">
+        <span>발표 제목 (선택)</span>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Diffusion 기반 궤적 예측 중간 보고"
-          required
         />
       </label>
-
-      <div className="field-row">
-        <label className="field">
-          <span>발표자</span>
-          <input value={presenter} onChange={(e) => setPresenter(e.target.value)} required />
-        </label>
-        <label className="field">
-          <span>날짜</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-        </label>
-      </div>
 
       <label className="field">
         <span>발표 자료 (PDF)</span>
@@ -174,7 +205,7 @@ export function UploadForm({ mode }: { mode: UploadMode }) {
       </label>
 
       <label className="field">
-        <span>영상 (선택, 여러 개 가능)</span>
+        <span>영상 (선택, 여러 개 가능) → <code>figs/</code></span>
         <input
           type="file"
           accept="video/*,.mp4,.webm,.mov,.m4v"

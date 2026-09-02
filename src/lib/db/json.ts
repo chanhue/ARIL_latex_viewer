@@ -1,6 +1,11 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type { Presentation, PresentationSummary } from '../types'
+import type {
+  Meeting,
+  MeetingSummary,
+  Presentation,
+  PresentationWithMeeting,
+} from '../types'
 
 /**
  * JSON-file backend — the default for local development. No server to run, no
@@ -17,7 +22,7 @@ import type { Presentation, PresentationSummary } from '../types'
 const DATA_DIR = path.join(process.cwd(), '.data')
 const DB_FILE = path.join(DATA_DIR, 'db.json')
 
-type Shape = { presentations: Presentation[] }
+type Shape = { meetings: Meeting[]; presentations: Presentation[] }
 
 let writeQueue: Promise<unknown> = Promise.resolve()
 
@@ -25,9 +30,11 @@ async function readAll(): Promise<Shape> {
   try {
     const raw = await fs.readFile(DB_FILE, 'utf8')
     const parsed = JSON.parse(raw) as Partial<Shape>
-    return { presentations: parsed.presentations ?? [] }
+    return { meetings: parsed.meetings ?? [], presentations: parsed.presentations ?? [] }
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { presentations: [] }
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return { meetings: [], presentations: [] }
+    }
     throw err
   }
 }
@@ -35,7 +42,7 @@ async function readAll(): Promise<Shape> {
 async function writeAll(data: Shape): Promise<void> {
   await fs.mkdir(DATA_DIR, { recursive: true })
   // Write-then-rename so a crash mid-write cannot leave truncated JSON behind.
-  const tmp = DB_FILE + '.' + process.pid + '.tmp'
+  const tmp = `${DB_FILE}.${process.pid}.tmp`
   await fs.writeFile(tmp, JSON.stringify(data, null, 2), 'utf8')
   await fs.rename(tmp, DB_FILE)
 }
@@ -52,28 +59,91 @@ function transact<T>(fn: (data: Shape) => Promise<T> | T): Promise<T> {
   return next
 }
 
-function summarise(p: Presentation): PresentationSummary {
-  const { pdf, videos, ...rest } = p
-  return { ...rest, pdfUrl: pdf.url, videoCount: videos.length }
+/* ------------------------------------------------------------- meetings */
+
+export async function listMeetings(): Promise<MeetingSummary[]> {
+  const { meetings, presentations } = await readAll()
+  return meetings
+    .slice()
+    .sort((a, b) =>
+      a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date),
+    )
+    .map((meeting) => {
+      const slots = presentations.filter((p) => p.meetingId === meeting.id)
+      return {
+        ...meeting,
+        slotCount: slots.length,
+        uploadedCount: slots.filter((p) => p.pdf).length,
+        presenters: slots.map((p) => p.presenter),
+      }
+    })
 }
 
-export async function listPresentations(): Promise<PresentationSummary[]> {
+export async function getMeeting(id: string): Promise<Meeting | null> {
+  const { meetings } = await readAll()
+  return meetings.find((m) => m.id === id) ?? null
+}
+
+export async function meetingTitles(): Promise<string[]> {
+  const { meetings } = await readAll()
+  return meetings.map((m) => m.title)
+}
+
+export async function addMeeting(meeting: Meeting): Promise<Meeting> {
+  return transact((data) => {
+    data.meetings.push(meeting)
+    return meeting
+  })
+}
+
+export async function removeMeeting(
+  id: string,
+): Promise<{ meeting: Meeting; presentations: Presentation[] } | null> {
+  return transact((data) => {
+    const index = data.meetings.findIndex((m) => m.id === id)
+    if (index === -1) return null
+    const [meeting] = data.meetings.splice(index, 1)
+
+    const removed = data.presentations.filter((p) => p.meetingId === id)
+    data.presentations = data.presentations.filter((p) => p.meetingId !== id)
+    return { meeting, presentations: removed }
+  })
+}
+
+/* -------------------------------------------------------- presentations */
+
+export async function listPresentations(meetingId: string): Promise<Presentation[]> {
   const { presentations } = await readAll()
   return presentations
-    .slice()
-    .sort((a, b) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date)))
-    .map(summarise)
+    .filter((p) => p.meetingId === meetingId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
 }
 
-export async function getPresentation(id: string): Promise<Presentation | null> {
-  const { presentations } = await readAll()
-  return presentations.find((p) => p.id === id) ?? null
+export async function getPresentation(id: string): Promise<PresentationWithMeeting | null> {
+  const { meetings, presentations } = await readAll()
+  const presentation = presentations.find((p) => p.id === id)
+  if (!presentation) return null
+  const meeting = meetings.find((m) => m.id === presentation.meetingId)
+  if (!meeting) return null
+  return { ...presentation, meeting }
 }
 
-export async function addPresentation(p: Presentation): Promise<Presentation> {
+export async function addPresentation(presentation: Presentation): Promise<Presentation> {
   return transact((data) => {
-    data.presentations.push(p)
-    return p
+    data.presentations.push(presentation)
+    return presentation
+  })
+}
+
+export async function updatePresentation(
+  id: string,
+  patch: Partial<Omit<Presentation, 'id' | 'meetingId' | 'createdAt'>>,
+): Promise<Presentation | null> {
+  return transact((data) => {
+    const presentation = data.presentations.find((p) => p.id === id)
+    if (!presentation) return null
+    Object.assign(presentation, patch, { updatedAt: new Date().toISOString() })
+    return presentation
   })
 }
 

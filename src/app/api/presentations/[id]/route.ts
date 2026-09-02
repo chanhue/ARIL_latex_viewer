@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getPresentation, removePresentation } from '@/lib/db'
-import { deletePresentationFiles } from '@/lib/storage'
+import { deleteFolder } from '@/lib/storage'
+import { slotUrls } from '@/lib/slots'
+import { sanitizeSegment } from '@/lib/meeting.mjs'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,11 +21,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
+
+  // Read first: the meeting folder is needed to locate the files, and it is
+  // gone from the join once the row is deleted.
+  const presentation = await getPresentation(id)
+  if (!presentation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
   const removed = await removePresentation(id)
   if (!removed) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // Files go after the record: an orphaned blob is harmless, a record pointing
-  // at a deleted file is a broken page.
-  await deletePresentationFiles(id, [removed.pdf.url, ...removed.videos.map((v) => v.url)])
+  const folder = `${presentation.meeting.folder}/${sanitizeSegment(presentation.presenter)}`
+  await deleteFolder(folder, slotUrls(removed))
   return NextResponse.json({ ok: true })
 }

@@ -1,14 +1,14 @@
 /**
- * Builds a demo deck and uploads it to a running dev server.
+ * Builds a demo deck, creates a lab meeting, and uploads into it.
  *
  *   npm run dev          # in one terminal
  *   npm run demo         # in another
  *
  * The generated PDF exercises every branch of resolveLink():
- *   slide 2  a large placeholder box linked to demo.mp4   -> inline player
- *   slide 3  a word-sized link to demo.mp4                -> badge + lightbox
- *   slide 3  an ordinary https link                       -> stays a hyperlink
- *   slide 4  a link to a file that was never uploaded     -> rendered as nothing
+ *   slide 2  a big placeholder box linked to figs/demo.mp4 -> inline player
+ *   slide 3  a word-sized link to figs/demo.mp4            -> badge + lightbox
+ *   slide 3  an ordinary https link                        -> stays a hyperlink
+ *   slide 4  a link to a file that was never uploaded      -> rendered as nothing
  *
  * Text is English on purpose: the standard PDF fonts have no Hangul, and
  * embedding a Korean face would drag in fontkit just to draw a demo.
@@ -110,7 +110,7 @@ async function buildPdf() {
   /* ---- 2. inline player ---- */
   const inline = newPage()
   heading(inline, 'Inline player')
-  inline.drawText('The box below is an image hyperlinked to demo.mp4.', {
+  inline.drawText('The box below is an image hyperlinked to figs/demo.mp4.', {
     x: 34, y: PAGE_HEIGHT - 80, size: 11, font: regular, color: MUTED,
   })
 
@@ -125,7 +125,7 @@ async function buildPdf() {
     x: box.x + 12, y: box.y + box.height / 2 - 4, size: 13, font: bold, color: ACCENT,
   })
   // `?loop` makes the viewer loop it muted, the usual case for a result clip.
-  addLinkAnnotation(pdfDoc, inline, { ...box, uri: 'run:demo.mp4?loop' })
+  addLinkAnnotation(pdfDoc, inline, { ...box, uri: 'run:figs/demo.mp4?loop' })
 
   inline.drawText('The viewer replaces exactly this', {
     x: 300, y: 140, size: 10, font: regular, color: MUTED,
@@ -138,11 +138,11 @@ async function buildPdf() {
   const small = newPage()
   heading(small, 'Small link and a normal link')
 
-  const clipLabel = 'Watch the clip (demo.mp4)'
+  const clipLabel = 'Watch the clip (figs/demo.mp4)'
   const clipWidth = regular.widthOfTextAtSize(clipLabel, 12)
   small.drawText(clipLabel, { x: 34, y: PAGE_HEIGHT - 92, size: 12, font: regular, color: ACCENT })
   addLinkAnnotation(pdfDoc, small, {
-    x: 34, y: PAGE_HEIGHT - 96, width: clipWidth, height: 16, uri: 'demo.mp4',
+    x: 34, y: PAGE_HEIGHT - 96, width: clipWidth, height: 16, uri: 'figs/demo.mp4',
   })
   small.drawText('-> too small for a player, so it becomes a badge that opens a lightbox.', {
     x: 34, y: PAGE_HEIGHT - 112, size: 9, font: regular, color: MUTED,
@@ -166,7 +166,7 @@ async function buildPdf() {
   const deadWidth = regular.widthOfTextAtSize(deadLabel, 12)
   dead.drawText(deadLabel, { x: 34, y: PAGE_HEIGHT - 92, size: 12, font: regular, color: MUTED })
   addLinkAnnotation(pdfDoc, dead, {
-    x: 34, y: PAGE_HEIGHT - 96, width: deadWidth, height: 16, uri: 'run:never-uploaded.mp4',
+    x: 34, y: PAGE_HEIGHT - 96, width: deadWidth, height: 16, uri: 'run:figs/never-uploaded.mp4',
   })
   dead.drawText('-> the file was not uploaded, so the viewer renders no overlay at all.', {
     x: 34, y: PAGE_HEIGHT - 112, size: 9, font: regular, color: MUTED,
@@ -198,20 +198,36 @@ async function sessionCookie() {
   return setCookie.split(';')[0]
 }
 
-async function upload() {
+async function createMeeting(cookie) {
+  const response = await fetch(`${SERVER}/api/meetings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) },
+    body: JSON.stringify({
+      date: new Date().toISOString().slice(0, 10),
+      // One name uploads below; the other stays empty to show a missing slot.
+      presenters: ['데모', '아직 안 올린 사람'],
+    }),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(payload.error ?? `meeting failed (${response.status})`)
+
+  console.log(`[demo] meeting        ${payload.title}`)
+  return payload.id
+}
+
+async function upload(meetingId, cookie) {
   const [pdfBytes, videoBytes] = await Promise.all([
     fs.readFile(PDF_PATH),
     fs.readFile(VIDEO_PATH),
   ])
 
   const form = new FormData()
+  form.set('meetingId', meetingId)
+  form.set('presenter', '데모')
   form.set('title', 'Video-in-Slide Demo')
-  form.set('presenter', 'ARIL')
-  form.set('date', new Date().toISOString().slice(0, 10))
   form.set('pdf', new File([pdfBytes], 'demo-slides.pdf', { type: 'application/pdf' }))
   form.append('videos', new File([videoBytes], 'demo.mp4', { type: 'video/mp4' }))
 
-  const cookie = await sessionCookie()
   const response = await fetch(`${SERVER}/api/upload`, {
     method: 'POST',
     body: form,
@@ -220,7 +236,8 @@ async function upload() {
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(payload.error ?? `upload failed (${response.status})`)
 
-  console.log(`[demo] uploaded -> ${SERVER}/p/${payload.id}`)
+  console.log(`[demo] meeting page   ${SERVER}/m/${meetingId}`)
+  console.log(`[demo] open the deck  ${SERVER}/p/${payload.id}`)
   return payload.id
 }
 
@@ -230,10 +247,12 @@ async function main() {
   await buildPdf()
 
   try {
-    await upload()
+    const cookie = await sessionCookie()
+    const meetingId = await createMeeting(cookie)
+    await upload(meetingId, cookie)
   } catch (err) {
     console.error(`[demo] could not upload to ${SERVER}: ${err.message}`)
-    console.error('[demo] the files are in demo-assets/ — start `npm run dev` and upload them at /upload')
+    console.error('[demo] the files are in demo-assets/ — start `npm run dev`, make a meeting, and upload them there')
     process.exitCode = 1
   }
 }

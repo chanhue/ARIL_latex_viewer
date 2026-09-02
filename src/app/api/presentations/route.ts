@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server'
-import { addPresentation, listPresentations } from '@/lib/db'
-import type { Presentation, StoredFile } from '@/lib/types'
+import { getMeeting } from '@/lib/db'
+import { createEmptySlot, fillSlot, findSlot } from '@/lib/slots'
+import { sanitizeSegment } from '@/lib/meeting.mjs'
+import type { StoredFile } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
-
-export async function GET() {
-  return NextResponse.json({ presentations: await listPresentations() })
-}
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * Only Blob URLs are accepted. Without this the endpoint would happily store
@@ -39,23 +35,22 @@ function parseFile(value: unknown): StoredFile | null {
     name: file.name,
     url: file.url,
     size: typeof file.size === 'number' && file.size >= 0 ? file.size : 0,
-    contentType: typeof file.contentType === 'string' ? file.contentType : 'application/octet-stream',
+    contentType:
+      typeof file.contentType === 'string' ? file.contentType : 'application/octet-stream',
   }
 }
 
 /**
- * Records a presentation whose files are already in Blob storage — the second
- * half of the direct-upload flow. The multipart path (/api/upload) is what
- * local development uses instead.
+ * Two jobs, told apart by whether `pdf` is present:
+ *
+ *   without pdf  register an empty slot — a name on the meeting page with
+ *                nothing uploaded yet
+ *   with pdf     record files already uploaded straight to Blob by the
+ *                browser, the second half of the direct-upload flow
+ *
+ * The multipart path (/api/upload) is what local development uses instead.
  */
 export async function POST(request: Request) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json(
-      { error: '이 엔드포인트는 Blob 업로드 환경에서만 쓰입니다.' },
-      { status: 501 },
-    )
-  }
-
   let payload: Record<string, unknown>
   try {
     payload = await request.json()
@@ -63,16 +58,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
   }
 
-  const id = String(payload.id ?? '')
-  const title = String(payload.title ?? '').trim()
+  const meetingId = String(payload.meetingId ?? '')
   const presenter = String(payload.presenter ?? '').trim()
-  const date = String(payload.date ?? '').trim()
+  const title = String(payload.title ?? '').trim()
 
-  if (!UUID.test(id)) return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
-  if (!title) return NextResponse.json({ error: '제목을 입력해 주세요.' }, { status: 400 })
-  if (!presenter) return NextResponse.json({ error: '발표자를 입력해 주세요.' }, { status: 400 })
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return NextResponse.json({ error: '날짜 형식이 올바르지 않습니다.' }, { status: 400 })
+  const meeting = await getMeeting(meetingId)
+  if (!meeting) return NextResponse.json({ error: '랩미팅을 찾을 수 없습니다.' }, { status: 404 })
+
+  if (!presenter) return NextResponse.json({ error: '이름을 입력해 주세요.' }, { status: 400 })
+  if (!sanitizeSegment(presenter)) {
+    return NextResponse.json({ error: '이름으로 쓸 수 없는 문자입니다.' }, { status: 400 })
+  }
+
+  /* ---- empty slot ---- */
+
+  if (payload.pdf === undefined || payload.pdf === null) {
+    if (await findSlot(meetingId, presenter)) {
+      return NextResponse.json({ error: '이미 등록된 이름입니다.' }, { status: 409 })
+    }
+    const slot = await createEmptySlot(meetingId, presenter)
+    return NextResponse.json({ id: slot.id }, { status: 201 })
+  }
+
+  /* ---- record a direct upload ---- */
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return NextResponse.json(
+      { error: '파일 등록은 Blob 업로드 환경에서만 쓰입니다.' },
+      { status: 501 },
+    )
   }
 
   const pdf = parseFile(payload.pdf)
@@ -86,19 +100,9 @@ export async function POST(request: Request) {
     videos.push(video)
   }
 
-  const presentation: Presentation = {
-    id,
-    title,
-    presenter,
-    date,
-    pdf,
-    videos,
-    createdAt: new Date().toISOString(),
-  }
-
   try {
-    await addPresentation(presentation)
-    return NextResponse.json({ id }, { status: 201 })
+    const slot = await fillSlot({ meetingId, presenter, title, pdf, videos })
+    return NextResponse.json({ id: slot.id }, { status: 201 })
   } catch (err) {
     console.error('failed to record presentation', err)
     return NextResponse.json({ error: '저장 중 오류가 발생했습니다.' }, { status: 500 })

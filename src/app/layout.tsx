@@ -6,7 +6,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'ARIL 랩미팅',
-  description: '발표 자료를 올리고 그대로 발표 모드로 넘어가는 랩미팅용 뷰어',
+  description: '랩미팅 발표 자료를 올리고 그대로 발표 모드로 넘어가는 뷰어',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             ARIL <span>랩미팅</span>
           </Link>
           <nav>
-            <Link href="/upload" className="button button-primary">발표 올리기</Link>
+            <Link href="/meetings/new" className="button button-primary">새 랩미팅</Link>
             {guarded && <LogoutButton />}
           </nav>
         </header>

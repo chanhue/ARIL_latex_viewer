@@ -25,7 +25,12 @@ type Status = 'loading' | 'ready' | 'error'
  * viewer, because that is the only way to reach the link annotations and swap
  * them for real <video> elements sitting exactly where the author put them.
  */
-export function Deck({ presentation }: { presentation: Presentation }) {
+export function Deck({
+  presentation,
+}: {
+  // An empty slot has no slides; the page filters those out before rendering.
+  presentation: Presentation & { pdf: StoredFile }
+}) {
   const { pdf, videos } = presentation
 
   const [doc, setDoc] = useState<any>(null)

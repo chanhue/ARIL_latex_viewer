@@ -56,11 +56,24 @@ export function localPathFor(segments: string[]): string | null {
   return resolved
 }
 
-export async function deletePresentationFiles(id: string, urls: string[]): Promise<void> {
+/**
+ * Remove a whole folder of uploads.
+ *
+ * @param prefix storage path of the folder, e.g. `26.09.02 LAB Meeting/김찬희`
+ * @param urls   the public URLs of everything inside it
+ *
+ * Blob has no directories, so there the URLs are what gets deleted; locally the
+ * folder is removed outright, which also sweeps up anything the database lost
+ * track of.
+ */
+export async function deleteFolder(prefix: string, urls: string[]): Promise<void> {
   if (usingVercelBlob) {
     const { del } = await import('@vercel/blob')
     if (urls.length) await del(urls)
     return
   }
-  await fs.rm(path.join(BLOB_DIR, id), { recursive: true, force: true })
+
+  const target = localPathFor(prefix.split('/'))
+  if (!target) return
+  await fs.rm(target, { recursive: true, force: true })
 }

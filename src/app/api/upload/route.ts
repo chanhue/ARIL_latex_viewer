@@ -1,8 +1,9 @@
-import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
-import { addPresentation } from '@/lib/db'
+import { getMeeting } from '@/lib/db'
+import { fillSlot } from '@/lib/slots'
 import { putFile, safeFileName } from '@/lib/storage'
-import type { Presentation, StoredFile } from '@/lib/types'
+import { sanitizeSegment, storageKey } from '@/lib/meeting.mjs'
+import type { StoredFile } from '@/lib/types'
 
 export const runtime = 'nodejs'
 // Uploading a talk plus a couple of clips can take a while on lab wifi.
@@ -15,23 +16,33 @@ function extensionOf(name: string) {
   return name.split('.').pop()?.toLowerCase() ?? ''
 }
 
+/**
+ * Multipart upload into a person's slot. Used when the app is running against
+ * local disk; on Vercel the browser uploads to Blob directly instead, because
+ * a serverless function may only receive 4.5MB of request body.
+ */
 export async function POST(request: Request) {
   let form: FormData
   try {
     form = await request.formData()
   } catch {
-    return NextResponse.json({ error: '업로드를 읽지 못했습니다. 파일이 너무 큰지 확인해 주세요.' }, { status: 400 })
+    return NextResponse.json(
+      { error: '업로드를 읽지 못했습니다. 파일이 너무 큰지 확인해 주세요.' },
+      { status: 400 },
+    )
   }
 
-  const title = String(form.get('title') ?? '').trim()
+  const meetingId = String(form.get('meetingId') ?? '')
   const presenter = String(form.get('presenter') ?? '').trim()
-  const date = String(form.get('date') ?? '').trim()
+  const title = String(form.get('title') ?? '').trim()
   const pdf = form.get('pdf')
 
-  if (!title) return NextResponse.json({ error: '제목을 입력해 주세요.' }, { status: 400 })
-  if (!presenter) return NextResponse.json({ error: '발표자를 입력해 주세요.' }, { status: 400 })
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return NextResponse.json({ error: '날짜 형식이 올바르지 않습니다.' }, { status: 400 })
+  const meeting = await getMeeting(meetingId)
+  if (!meeting) return NextResponse.json({ error: '랩미팅을 찾을 수 없습니다.' }, { status: 404 })
+
+  if (!presenter) return NextResponse.json({ error: '이름을 입력해 주세요.' }, { status: 400 })
+  if (!sanitizeSegment(presenter)) {
+    return NextResponse.json({ error: '이름으로 쓸 수 없는 문자입니다.' }, { status: 400 })
   }
   if (!(pdf instanceof File) || pdf.size === 0) {
     return NextResponse.json({ error: 'PDF 파일을 선택해 주세요.' }, { status: 400 })
@@ -42,12 +53,14 @@ export async function POST(request: Request) {
 
   const videoFiles = form
     .getAll('videos')
-    .filter((v): v is File => v instanceof File && v.size > 0)
+    .filter((value): value is File => value instanceof File && value.size > 0)
 
   for (const video of videoFiles) {
     if (!VIDEO_EXTENSIONS.includes(extensionOf(video.name))) {
       return NextResponse.json(
-        { error: `'${video.name}'은(는) 지원하지 않는 영상 형식입니다. (${VIDEO_EXTENSIONS.join(', ')})` },
+        {
+          error: `'${video.name}'은(는) 지원하지 않는 영상 형식입니다. (${VIDEO_EXTENSIONS.join(', ')})`,
+        },
         { status: 400 },
       )
     }
@@ -59,33 +72,32 @@ export async function POST(request: Request) {
     }
   }
 
-  const id = randomUUID()
-
-  const store = async (file: File): Promise<StoredFile> => {
+  const store = async (file: File, kind: 'pdf' | 'video'): Promise<StoredFile> => {
     const name = safeFileName(file.name)
+    const key = storageKey({ meetingFolder: meeting.folder, presenter, fileName: name, kind })
+    if (!key) throw new Error(`could not build a storage path for ${name}`)
+
     const buffer = Buffer.from(await file.arrayBuffer())
-    const url = await putFile(`${id}/${name}`, buffer, file.type || 'application/octet-stream')
-    return { name, url, size: file.size, contentType: file.type || 'application/octet-stream' }
+    const contentType = file.type || 'application/octet-stream'
+    const url = await putFile(key, buffer, contentType)
+    return { name, url, size: file.size, contentType }
   }
 
   try {
-    const storedPdf = await store(pdf)
+    const storedPdf = await store(pdf, 'pdf')
     // Sequential rather than Promise.all: a few hundred MB of clips buffered
     // in memory at once is how a small box runs out of RAM.
     const storedVideos: StoredFile[] = []
-    for (const video of videoFiles) storedVideos.push(await store(video))
+    for (const video of videoFiles) storedVideos.push(await store(video, 'video'))
 
-    const presentation: Presentation = {
-      id,
-      title,
+    const slot = await fillSlot({
+      meetingId,
       presenter,
-      date,
+      title,
       pdf: storedPdf,
       videos: storedVideos,
-      createdAt: new Date().toISOString(),
-    }
-    await addPresentation(presentation)
-    return NextResponse.json({ id }, { status: 201 })
+    })
+    return NextResponse.json({ id: slot.id }, { status: 201 })
   } catch (err) {
     console.error('upload failed', err)
     return NextResponse.json({ error: '저장 중 오류가 발생했습니다.' }, { status: 500 })

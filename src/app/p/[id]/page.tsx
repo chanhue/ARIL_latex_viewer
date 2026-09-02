@@ -14,21 +14,44 @@ export default async function PresentationPage({
   const presentation = await getPresentation(id)
   if (!presentation) notFound()
 
+  // An empty slot has a name but no slides — there is nothing to present yet.
+  if (!presentation.pdf) {
+    return (
+      <div className="page page-narrow">
+        <div className="page-head">
+          <h1>{presentation.presenter}</h1>
+          <p>아직 자료를 올리지 않았습니다.</p>
+        </div>
+        <p className="back-link">
+          <Link
+            href={`/m/${presentation.meetingId}/upload?presenter=${encodeURIComponent(presentation.presenter)}`}
+            className="button button-primary"
+          >
+            지금 올리기
+          </Link>
+        </p>
+        <p className="back-link">
+          <Link href={`/m/${presentation.meetingId}`}>← {presentation.meeting.title}</Link>
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="viewer">
       <div className="viewer-head">
         <div>
-          <h1>{presentation.title}</h1>
+          <h1>{presentation.title || presentation.presenter}</h1>
           <p>
-            {presentation.presenter} · {presentation.date}
+            {presentation.meeting.title} · {presentation.presenter}
             {presentation.videos.length > 0 && (
               <span className="viewer-videos">
-                영상 {presentation.videos.map((v) => v.name).join(', ')}
+                figs/ {presentation.videos.map((v) => v.name).join(', ')}
               </span>
             )}
           </p>
         </div>
-        <Link href="/" className="button">목록</Link>
+        <Link href={`/m/${presentation.meetingId}`} className="button">목록</Link>
       </div>
       <Deck presentation={presentation} />
     </div>

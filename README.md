@@ -1,10 +1,34 @@
 # ARIL 랩미팅 뷰어
 
-발표 PDF를 올리면 브라우저에서 그대로 발표 모드로 넘어가는 사이트. PDF를 그냥 띄우는 게
-아니라 **pdf.js로 직접 렌더링**하기 때문에, 슬라이드 안의 하이퍼링크를 읽어서 그 자리에
-진짜 `<video>` 를 얹을 수 있다. 랩미팅에서 결과 영상을 슬라이드와 같이 보여주는 게 목적.
+랩미팅 회차를 만들고, 각자 자기 이름 아래에 발표 PDF와 영상을 올리면 브라우저에서 그대로
+발표 모드로 넘어가는 사이트. PDF를 그냥 띄우는 게 아니라 **pdf.js로 직접 렌더링**하기
+때문에, 슬라이드 안의 하이퍼링크를 읽어서 그 자리에 진짜 `<video>` 를 얹을 수 있다.
 
-## 어떻게 동작하나
+## 폴더 구조
+
+랩미팅 하나가 폴더 하나다. 그 안에 사람별 폴더가 있고, 영상은 `figs/` 에 들어간다.
+
+```
+26.09.02 LAB Meeting/
+├── 김찬희/
+│   ├── slides.pdf
+│   └── figs/
+│       ├── demo.mp4
+│       └── ablation.mp4
+└── 홍길동/
+    ├── slides.pdf
+    └── figs/
+        └── result.mp4
+```
+
+`figs/` 는 LaTeX 프로젝트가 그림을 두는 자리와 같다. 그래서 `\href{figs/demo.mp4}{...}`
+라고 쓰면 소스 트리와 업로드된 폴더가 같은 경로를 가리키게 된다. (매칭은 파일 이름만
+비교하므로 경로가 꼭 일치해야 하는 건 아니지만, 이렇게 두면 읽기 좋다.)
+
+폴더 이름은 날짜에서 자동으로 만들어진다. 같은 날 두 번째 회차는 `(2)` 가 붙어서
+폴더가 겹치지 않는다.
+
+## 영상을 슬라이드에 넣는 법
 
 PDF의 하이퍼링크는 텍스트가 아니라 **위치 사각형(rect) + URI 를 가진 주석**이다.
 pdf.js의 `page.getAnnotations()` 로 이걸 읽어서, URI가 가리키는 파일명이 함께 올린 영상과
@@ -16,13 +40,13 @@ LaTeX 쪽에서는 이렇게만 쓰면 된다.
 \usepackage{hyperref}
 
 % 썸네일 이미지에 링크를 걸면 그 이미지 크기가 곧 영상 크기가 된다
-\href{run:demo.mp4}{\includegraphics[width=0.6\textwidth]{demo_thumb.png}}
+\href{run:figs/demo.mp4}{\includegraphics[width=0.6\textwidth]{figs/demo_thumb.png}}
 
 % 반복 재생 (음소거는 자동)
-\href{run:demo.mp4?loop}{\includegraphics[width=0.6\textwidth]{demo_thumb.png}}
+\href{run:figs/demo.mp4?loop}{\includegraphics[width=0.6\textwidth]{figs/demo_thumb.png}}
 
 % 슬라이드가 넘어오면 바로 재생
-\href{run:demo.mp4?autoplay&loop}{\includegraphics[width=0.6\textwidth]{demo_thumb.png}}
+\href{run:figs/demo.mp4?autoplay&loop}{\includegraphics[width=0.6\textwidth]{figs/demo_thumb.png}}
 ```
 
 그리고 사이트에서 PDF와 `demo.mp4` 를 같이 업로드하면 끝.
@@ -37,10 +61,21 @@ LaTeX 쪽에서는 이렇게만 쓰면 된다.
 | `run:`/`file:` 인데 올린 파일이 없음 | 아무것도 표시하지 않음 (죽은 링크) |
 
 `run:`, `file:`, `video:` 접두사와 경로·쿼리·프래그먼트는 알아서 벗겨내고, 대소문자와
-한글 파일명도 맞춰준다.
+한글 파일명도 맞춰준다. 그래서 `figs/demo.mp4` 든 `run:demo.mp4` 든 똑같이 붙는다.
 
 링크가 **단어 크기처럼 작으면** 플레이어를 넣을 수 없으므로 ▶ 배지로 바뀌고, 누르면
 전체화면 라이트박스로 재생된다. 기준은 슬라이드 대비 가로·세로 12% 이상.
+
+## 쓰는 흐름
+
+1. **새 랩미팅** 에서 날짜를 고른다. 발표자 이름을 미리 넣어두면 빈 슬롯이 생기고,
+   회차 페이지에서 누가 아직 안 올렸는지 한눈에 보인다. 안 넣어도 된다
+2. 각자 **올리기** 로 자기 이름 아래에 PDF와 영상을 올린다. 미리 등록되지 않은
+   이름으로 올리면 슬롯이 그때 만들어진다
+3. 발표할 때 **발표** 버튼 → 전체화면
+
+같은 이름으로 다시 올리면 기존 자료를 갈아치운다. 발표 10분 전에 오타를 발견했을 때
+필요한 동작이다.
 
 ## 실행
 
@@ -55,16 +90,16 @@ npm run dev          # http://localhost:4321
 
 ```bash
 npm run dev          # 한쪽 터미널
-npm run demo         # 다른 터미널 — 데모 PDF와 영상을 만들어서 업로드까지 한다
+npm run demo         # 다른 터미널
 ```
 
-`npm run demo` 는 위 4가지 링크 규칙을 전부 담은 5쪽짜리 PDF와 8초짜리 테스트 영상을
-만들어 올린다. 링크 → 영상 변환이 실제로 되는지 눈으로 확인하는 용도.
+랩미팅 하나를 만들고, 위 4가지 링크 규칙을 전부 담은 5쪽짜리 PDF와 8초짜리 테스트 영상을
+그 안에 올린다. 발표자 두 명 중 한 명은 일부러 빈 슬롯으로 둔다.
 
 ### 테스트
 
 ```bash
-npm test             # 링크 매칭 + Range 파싱 (의존성 없이 node --test)
+npm test             # 링크 매칭 · Range 파싱 · 세션 · 폴더 이름 (의존성 없이 node --test)
 npm run typecheck
 ```
 
@@ -224,6 +259,7 @@ npm run build && npm start     # http://<랩서버>:4321
 ## 구조
 
 ```
+src/lib/meeting.mjs        폴더 이름 / 저장 경로 규칙 (순수 함수, 테스트됨)
 src/lib/link-match.mjs     링크 -> 영상 판정 (순수 함수, 테스트됨)
 src/lib/http-range.mjs     Range 헤더 파싱 (순수 함수, 테스트됨)
 src/lib/auth.mjs           공용 비밀번호 세션 (순수 함수, 테스트됨)
@@ -234,10 +270,13 @@ src/lib/db/json.ts           .data/db.json  (로컬)
 src/lib/db/postgres.ts       Neon Postgres  (Vercel)
 src/components/Deck.tsx    pdf.js 렌더링 + 영상 오버레이 + 발표 모드
 src/components/PageThumb.tsx  슬라이드 목록 썸네일 (동시 렌더 3개로 제한)
-src/components/UploadForm.tsx  업로드 폼 (직접 업로드 / multipart 양쪽)
+src/lib/slots.ts           사람 슬롯 찾기 / 만들기 / 채우기
+src/components/MeetingSlots.tsx  회차 안의 사람 목록
+src/components/UploadForm.tsx    업로드 폼 (직접 업로드 / multipart 양쪽)
 src/app/api/files/         로컬 파일 서빙 (영상 탐색을 위한 Range 지원)
 src/app/api/upload/        multipart 업로드 (로컬)
 src/app/api/blob-upload/   Blob 업로드 토큰 발급 (Vercel)
-src/app/api/presentations/ 목록 / 등록 / 삭제
+src/app/api/meetings/      회차 만들기 / 조회 / 삭제
+src/app/api/presentations/ 슬롯 등록 / 조회 / 삭제
 src/app/api/login/         로그인 / 로그아웃
 ```

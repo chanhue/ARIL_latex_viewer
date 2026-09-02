@@ -1,38 +1,44 @@
 import Link from 'next/link'
-import { listPresentations } from '@/lib/db'
+import { listMeetings } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-function formatDate(date: string) {
-  const [year, month, day] = date.split('-')
-  return `${year}. ${month}. ${day}`
-}
-
 export default async function HomePage() {
-  const presentations = await listPresentations()
+  const meetings = await listMeetings()
 
   return (
     <div className="page">
       <div className="page-head">
-        <h1>발표 자료</h1>
-        <p>PDF를 올리면 슬라이드 안의 영상 링크가 그 자리에서 바로 재생됩니다.</p>
+        <h1>랩미팅</h1>
+        <p>회차를 만들고, 각자 자기 이름 아래에 발표 자료와 영상을 올립니다.</p>
       </div>
 
-      {presentations.length === 0 ? (
+      {meetings.length === 0 ? (
         <div className="empty">
-          <p>아직 올라온 발표가 없습니다.</p>
-          <Link href="/upload" className="button button-primary">첫 발표 올리기</Link>
+          <p>아직 만들어진 랩미팅이 없습니다.</p>
+          <Link href="/meetings/new" className="button button-primary">첫 랩미팅 만들기</Link>
         </div>
       ) : (
-        <ul className="deck-list">
-          {presentations.map((item) => (
-            <li key={item.id}>
-              <Link href={`/p/${item.id}`}>
-                <span className="deck-list-date">{formatDate(item.date)}</span>
-                <span className="deck-list-title">{item.title}</span>
-                <span className="deck-list-meta">
-                  {item.presenter}
-                  {item.videoCount > 0 && <em>영상 {item.videoCount}개</em>}
+        <ul className="meeting-list">
+          {meetings.map((meeting) => (
+            <li key={meeting.id}>
+              <Link href={`/m/${meeting.id}`}>
+                <span className="meeting-title">{meeting.title}</span>
+                <span className="meeting-meta">
+                  {meeting.slotCount === 0 ? (
+                    <em className="pending">발표자 없음</em>
+                  ) : (
+                    <>
+                      <span className="meeting-people">{meeting.presenters.join(', ')}</span>
+                      {meeting.uploadedCount < meeting.slotCount ? (
+                        <em className="pending">
+                          {meeting.slotCount - meeting.uploadedCount}명 미제출
+                        </em>
+                      ) : (
+                        <em className="done">전원 제출</em>
+                      )}
+                    </>
+                  )}
                 </span>
               </Link>
             </li>
