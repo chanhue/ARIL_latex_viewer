@@ -25,24 +25,7 @@ export default async function MeetingPage({
           <h1>{meeting.title}</h1>
           <p>{submitted}명 제출</p>
         </div>
-        {/* A seminar has one presenter, so there is no order to draw. */}
-        {meeting.kind !== 'seminar' && (
-          <div className="page-actions">
-            <Link href={`/m/${meeting.id}/order`} className="button">진행 여부</Link>
-          </div>
-        )}
       </div>
-
-      {meeting.order.length > 0 && (
-        <ol className="order-strip">
-          {meeting.order.map((name, index) => (
-            <li key={name}>
-              <span className="order-no">{index + 1}</span>
-              {name}
-            </li>
-          ))}
-        </ol>
-      )}
 
       <MeetingSlots meeting={meeting} presentations={presentations} />
 

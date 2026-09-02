@@ -22,7 +22,12 @@ import type {
 const DATA_DIR = path.join(process.cwd(), '.data')
 const DB_FILE = path.join(DATA_DIR, 'db.json')
 
-type Shape = { meetings: Meeting[]; presentations: Presentation[]; template: string[] }
+type Shape = {
+  meetings: Meeting[]
+  presentations: Presentation[]
+  template: string[]
+  order: string[]
+}
 
 let writeQueue: Promise<unknown> = Promise.resolve()
 
@@ -32,18 +37,18 @@ async function readAll(): Promise<Shape> {
     const parsed = JSON.parse(raw) as Partial<Shape>
     return {
       // Records written before seminars existed have no kind.
-      // Records written before these fields existed carry neither.
+      // Records written before seminars existed have no kind.
       meetings: (parsed.meetings ?? []).map((meeting) => ({
         ...meeting,
         kind: meeting.kind ?? 'meeting',
-        order: meeting.order ?? [],
       })),
       presentations: parsed.presentations ?? [],
       template: parsed.template ?? [],
+      order: parsed.order ?? [],
     }
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      return { meetings: [], presentations: [], template: [] }
+      return { meetings: [], presentations: [], template: [], order: [] }
     }
     throw err
   }
@@ -97,15 +102,6 @@ export async function meetingTitles(): Promise<string[]> {
 export async function addMeeting(meeting: Meeting): Promise<Meeting> {
   return transact((data) => {
     data.meetings.push(meeting)
-    return meeting
-  })
-}
-
-export async function setMeetingOrder(id: string, order: string[]): Promise<Meeting | null> {
-  return transact((data) => {
-    const meeting = data.meetings.find((m) => m.id === id)
-    if (!meeting) return null
-    meeting.order = order
     return meeting
   })
 }
@@ -180,5 +176,19 @@ export async function setTemplate(members: string[]): Promise<string[]> {
   return transact((data) => {
     data.template = members
     return members
+  })
+}
+
+/* ------------------------------------------------------------- run order */
+
+export async function getRunOrder(): Promise<string[]> {
+  const { order } = await readAll()
+  return order
+}
+
+export async function setRunOrder(order: string[]): Promise<string[]> {
+  return transact((data) => {
+    data.order = order
+    return order
   })
 }

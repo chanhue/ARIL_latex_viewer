@@ -23,7 +23,6 @@ type Backend = {
   getMeeting: (id: string) => Promise<Meeting | null>
   meetingTitles: () => Promise<string[]>
   addMeeting: (meeting: Meeting) => Promise<Meeting>
-  setMeetingOrder: (id: string, order: string[]) => Promise<Meeting | null>
   removeMeeting: (
     id: string,
   ) => Promise<{ meeting: Meeting; presentations: Presentation[] } | null>
@@ -39,6 +38,9 @@ type Backend = {
 
   getTemplate: () => Promise<string[]>
   setTemplate: (members: string[]) => Promise<string[]>
+
+  getRunOrder: () => Promise<string[]>
+  setRunOrder: (order: string[]) => Promise<string[]>
 }
 
 // Loaded lazily so the unused backend's driver is never imported — that keeps
@@ -66,10 +68,6 @@ export async function meetingTitles() {
 
 export async function addMeeting(meeting: Meeting) {
   return (await backend()).addMeeting(meeting)
-}
-
-export async function setMeetingOrder(id: string, order: string[]) {
-  return (await backend()).setMeetingOrder(id, order)
 }
 
 export async function removeMeeting(id: string) {
@@ -105,4 +103,12 @@ export async function getTemplate() {
 
 export async function setTemplate(members: string[]) {
   return (await backend()).setTemplate(members)
+}
+
+export async function getRunOrder() {
+  return (await backend()).getRunOrder()
+}
+
+export async function setRunOrder(order: string[]) {
+  return (await backend()).setRunOrder(order)
 }

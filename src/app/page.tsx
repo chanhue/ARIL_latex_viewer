@@ -48,8 +48,16 @@ export default async function HomePage() {
         <div className="section-head">
           <h1>Lab Meetings</h1>
           <div className="page-actions">
+            <Link href="/order" className="button">진행 여부</Link>
             <Link href="/template" className="button">템플릿</Link>
-            <Link href="/meetings/new" className="button button-primary">새 랩미팅</Link>
+            <Link
+              href="/meetings/new"
+              className="button button-primary button-add"
+              aria-label="새 랩미팅"
+              title="새 랩미팅"
+            >
+              +
+            </Link>
           </div>
         </div>
         <EventList items={meetings} emptyText="No meetings yet." />
@@ -59,7 +67,14 @@ export default async function HomePage() {
         <div className="section-head">
           <h2>Lab Seminars</h2>
           <div className="page-actions">
-            <Link href="/seminars/new" className="button button-primary">새 랩세미나</Link>
+            <Link
+              href="/seminars/new"
+              className="button button-primary button-add"
+              aria-label="새 랩세미나"
+              title="새 랩세미나"
+            >
+              +
+            </Link>
           </div>
         </div>
         <EventList items={seminars} emptyText="No seminars yet." />

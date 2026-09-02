@@ -22,7 +22,6 @@ type MeetingRow = {
   date: string
   title: string
   folder: string
-  presenter_order: string[] | null
   created_at: string | Date
 }
 
@@ -111,8 +110,6 @@ async function createSchema(query: any): Promise<void> {
         date       TEXT NOT NULL,
         title      TEXT NOT NULL UNIQUE,
         folder     TEXT NOT NULL,
-        -- "order" is a reserved word; the column carries what it means instead.
-        presenter_order JSONB NOT NULL DEFAULT '[]'::jsonb,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
 
@@ -133,8 +130,6 @@ async function createSchema(query: any): Promise<void> {
       -- CREATE TABLE IF NOT EXISTS does nothing on a database made before
       -- seminars existed, so the column has to be added separately.
       ALTER TABLE meetings ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'meeting';
-      ALTER TABLE meetings
-        ADD COLUMN IF NOT EXISTS presenter_order JSONB NOT NULL DEFAULT '[]'::jsonb;
 
       CREATE TABLE IF NOT EXISTS settings (
         key   TEXT PRIMARY KEY,
@@ -167,7 +162,6 @@ function toMeeting(row: MeetingRow): Meeting {
     date: row.date,
     title: row.title,
     folder: row.folder,
-    order: row.presenter_order ?? [],
     createdAt: new Date(row.created_at).toISOString(),
   }
 }
@@ -222,24 +216,13 @@ export async function meetingTitles(): Promise<string[]> {
 export async function addMeeting(meeting: Meeting): Promise<Meeting> {
   const query = await sql()
   await query`
-    INSERT INTO meetings (id, kind, date, title, folder, presenter_order, created_at)
+    INSERT INTO meetings (id, kind, date, title, folder, created_at)
     VALUES (
       ${meeting.id}, ${meeting.kind}, ${meeting.date},
-      ${meeting.title}, ${meeting.folder},
-      ${JSON.stringify(meeting.order)}::jsonb, ${meeting.createdAt}
+      ${meeting.title}, ${meeting.folder}, ${meeting.createdAt}
     )
   `
   return meeting
-}
-
-export async function setMeetingOrder(id: string, order: string[]): Promise<Meeting | null> {
-  const query = await sql()
-  const rows = (await query`
-    UPDATE meetings SET presenter_order = ${JSON.stringify(order)}::jsonb
-    WHERE id = ${id}
-    RETURNING *
-  `) as MeetingRow[]
-  return rows[0] ? toMeeting(rows[0]) : null
 }
 
 export async function removeMeeting(
@@ -344,6 +327,7 @@ export async function removePresentation(id: string): Promise<Presentation | nul
 /* -------------------------------------------------------------- template */
 
 const TEMPLATE_KEY = 'template'
+const ORDER_KEY = 'order'
 
 export async function getTemplate(): Promise<string[]> {
   const query = await sql()
@@ -361,4 +345,24 @@ export async function setTemplate(members: string[]): Promise<string[]> {
     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
   `
   return members
+}
+
+/* ------------------------------------------------------------- run order */
+
+export async function getRunOrder(): Promise<string[]> {
+  const query = await sql()
+  const rows = (await query`
+    SELECT value FROM settings WHERE key = ${ORDER_KEY}
+  `) as Array<{ value: { order?: string[] } }>
+  return rows[0]?.value?.order ?? []
+}
+
+export async function setRunOrder(order: string[]): Promise<string[]> {
+  const query = await sql()
+  await query`
+    INSERT INTO settings (key, value)
+    VALUES (${ORDER_KEY}, ${JSON.stringify({ order })}::jsonb)
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+  `
+  return order
 }

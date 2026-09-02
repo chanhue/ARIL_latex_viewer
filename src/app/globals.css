@@ -192,28 +192,19 @@ body:has(.login-page) .site-header nav { display: none; }
   line-height: 1.15;
 }
 .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
+
+/* The create action is a plain +; what it creates is said by the heading it
+   sits next to. */
+.button-add {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+}
 .page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 
-/* Drawn speaking order, shown as a strip above the slot list so it is readable
-   from across the room without opening another page. */
-.order-strip {
-  list-style: none;
-  margin: 0 0 28px;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.order-strip li {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 18px 9px 9px;
-  border-radius: var(--pill);
-  background: var(--surface);
-  box-shadow: var(--card);
-  font-weight: 700;
-}
 .order-no {
   display: grid;
   place-items: center;

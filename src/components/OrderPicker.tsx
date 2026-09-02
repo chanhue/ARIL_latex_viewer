@@ -1,11 +1,14 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Meeting, Presentation } from '@/lib/types'
 
 /**
- * Tick who is presenting; the order is drawn again on every change.
+ * Tick who is presenting this week; the order is drawn again on every change.
+ *
+ * The roster comes from the template, not from any one meeting: the running
+ * order is settled on the spot, before anyone has opened a particular meeting.
  *
  * There is no draw button. Checking someone is the only action, and the order
  * is a consequence of it — a separate button would just be a step you could
@@ -15,18 +18,18 @@ import type { Meeting, Presentation } from '@/lib/types'
  * shared fact rather than something each person rolls for themselves.
  */
 export function OrderPicker({
-  meeting,
-  slots,
+  members,
+  initialOrder,
 }: {
-  meeting: Meeting
-  slots: Presentation[]
+  members: string[]
+  initialOrder: string[]
 }) {
   const router = useRouter()
 
   // Nothing is ticked on a meeting that has never been drawn. Coming back to
   // one that has keeps the previous selection rather than making you redo it.
-  const [checked, setChecked] = useState<string[]>(meeting.order)
-  const [order, setOrder] = useState<string[]>(meeting.order)
+  const [checked, setChecked] = useState<string[]>(initialOrder)
+  const [order, setOrder] = useState<string[]>(initialOrder)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -48,8 +51,8 @@ export function OrderPicker({
         const mine = ++latest.current
         setError('')
         try {
-          const response = await fetch(`/api/meetings/${meeting.id}`, {
-            method: 'PATCH',
+          const response = await fetch('/api/order', {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(
               names.length === 0 ? { clear: true } : { presenters: names },
@@ -68,7 +71,7 @@ export function OrderPicker({
         }
       }, 250)
     },
-    [meeting.id, router],
+    [router],
   )
 
   const toggle = (name: string) => {
@@ -79,20 +82,24 @@ export function OrderPicker({
     draw(next)
   }
 
-  if (slots.length === 0) {
-    return <p className="template-empty">발표자가 없습니다.</p>
+  if (members.length === 0) {
+    return (
+      <p className="template-empty">
+        명단이 비어 있습니다. <Link href="/template">템플릿 편집</Link>
+      </p>
+    )
   }
 
   return (
     <div className="order-picker">
       <ul className="check-grid">
-        {slots.map((slot) => {
-          const on = checked.includes(slot.presenter)
+        {members.map((name) => {
+          const on = checked.includes(name)
           return (
-            <li key={slot.id}>
+            <li key={name}>
               <label className={on ? 'on' : undefined}>
-                <input type="checkbox" checked={on} onChange={() => toggle(slot.presenter)} />
-                <span className="check-name">{slot.presenter}</span>
+                <input type="checkbox" checked={on} onChange={() => toggle(name)} />
+                <span className="check-name">{name}</span>
               </label>
             </li>
           )

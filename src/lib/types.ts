@@ -26,11 +26,6 @@ export type Meeting = {
   title: string
   /** Storage path prefix, sanitised from the title. */
   folder: string
-  /**
-   * Presenter names in the order they will speak, empty until someone draws it.
-   * Stored rather than computed so everyone in the room sees the same list.
-   */
-  order: string[]
   createdAt: string
 }
 
@@ -65,3 +60,10 @@ export type PresentationWithMeeting = Presentation & { meeting: Meeting }
  * chore this removes.
  */
 export type Template = { members: string[] }
+
+/**
+ * Who is presenting this week and in what order. One list for the lab, not per
+ * meeting — the running order is decided once, on the spot, before anyone has
+ * opened a particular meeting.
+ */
+export type RunOrder = { order: string[] }
