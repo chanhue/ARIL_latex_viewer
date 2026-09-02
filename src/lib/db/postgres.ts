@@ -94,7 +94,7 @@ async function createSchema(query: any): Promise<void> {
         EXECUTE format('ALTER TABLE presentations RENAME TO %I', archived);
 
         -- Renaming a table leaves its indexes and constraints under their old
-        -- names, so `presentations_pkey` would still be taken and creating the
+        -- names, so presentations_pkey would still be taken and creating the
         -- new table would fail on it. Move those aside as well.
         FOR idx IN
           SELECT indexname FROM pg_indexes
