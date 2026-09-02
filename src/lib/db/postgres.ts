@@ -49,39 +49,90 @@ async function connect() {
 }
 
 /**
- * Two tables, created on first use. At this size a migration tool would be
- * more moving parts than the schema it manages.
+ * Create the schema, once, safely.
+ *
+ * This is one statement on purpose. Two things forced it:
+ *
+ *  1. `CREATE TABLE IF NOT EXISTS` is not atomic. Two serverless instances
+ *     cold-starting together both see "not there" and both create, and one
+ *     dies with `duplicate key ... pg_type_typname_nsp_index`. The advisory
+ *     lock serialises them; it is held for the statement's transaction, which
+ *     matters because the HTTP driver gives every query its own session, so a
+ *     session-level lock would be released before the next statement ran.
+ *
+ *  2. The app once stored presentations as a flat list, before meetings
+ *     existed. On such a database `presentations` already exists, so
+ *     `CREATE TABLE IF NOT EXISTS` quietly does nothing and the index on
+ *     `meeting_id` then fails. The old table has to be moved aside first, in
+ *     the same critical section.
+ *
+ * The legacy table is renamed rather than dropped or altered: its shape
+ * changed too much to migrate row by row, and silently deleting someone's
+ * uploads to fix a schema problem is not a trade worth making.
  */
+async function createSchema(query: any): Promise<void> {
+  await query`
+    DO $$
+    DECLARE
+      archived text;
+      idx      text;
+    BEGIN
+      PERFORM pg_advisory_xact_lock(48210731);
+
+      IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'presentations'
+          )
+         AND NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'presentations'
+              AND column_name = 'meeting_id'
+          )
+      THEN
+        archived := 'presentations_legacy_' || to_char(now(), 'YYYYMMDDHH24MISS');
+        RAISE NOTICE 'renaming pre-meetings presentations table to %', archived;
+        EXECUTE format('ALTER TABLE presentations RENAME TO %I', archived);
+
+        -- Renaming a table leaves its indexes and constraints under their old
+        -- names, so `presentations_pkey` would still be taken and creating the
+        -- new table would fail on it. Move those aside as well.
+        FOR idx IN
+          SELECT indexname FROM pg_indexes
+          WHERE schemaname = 'public' AND tablename = archived
+        LOOP
+          EXECUTE format('ALTER INDEX %I RENAME TO %I', idx, archived || '_' || idx);
+        END LOOP;
+      END IF;
+
+      CREATE TABLE IF NOT EXISTS meetings (
+        id         TEXT PRIMARY KEY,
+        date       TEXT NOT NULL,
+        title      TEXT NOT NULL UNIQUE,
+        folder     TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS presentations (
+        id         TEXT PRIMARY KEY,
+        meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+        presenter  TEXT NOT NULL,
+        title      TEXT NOT NULL DEFAULT '',
+        pdf        JSONB,
+        videos     JSONB NOT NULL DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+
+      CREATE INDEX IF NOT EXISTS meetings_date_idx ON meetings (date DESC);
+      CREATE INDEX IF NOT EXISTS presentations_meeting_idx ON presentations (meeting_id);
+    END $$;
+  `
+}
+
 async function sql() {
   const query = await connect()
   if (!schemaReady) {
-    schemaReady = (async () => {
-      await query`
-        CREATE TABLE IF NOT EXISTS meetings (
-          id         TEXT PRIMARY KEY,
-          date       TEXT NOT NULL,
-          title      TEXT NOT NULL UNIQUE,
-          folder     TEXT NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `
-      await query`
-        CREATE TABLE IF NOT EXISTS presentations (
-          id         TEXT PRIMARY KEY,
-          meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
-          presenter  TEXT NOT NULL,
-          title      TEXT NOT NULL DEFAULT '',
-          pdf        JSONB,
-          videos     JSONB NOT NULL DEFAULT '[]'::jsonb,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `
-      await query`CREATE INDEX IF NOT EXISTS meetings_date_idx ON meetings (date DESC)`
-      await query`
-        CREATE INDEX IF NOT EXISTS presentations_meeting_idx ON presentations (meeting_id)
-      `
-    })().catch((err) => {
+    schemaReady = createSchema(query).catch((err) => {
       // Let the next request retry rather than caching the failure forever.
       schemaReady = null
       throw err
