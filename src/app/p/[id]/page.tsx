@@ -14,8 +14,14 @@ export default async function PresentationPage({
   const presentation = await getPresentation(id)
   if (!presentation) notFound()
 
+  // Pulled out as its own binding: narrowing `presentation.pdf` does not change
+  // the type of `presentation` itself, so passing the whole object to <Deck>
+  // would still carry `pdf: StoredFile | null`. Spreading the narrowed `pdf`
+  // back in below is what makes it check out.
+  const { pdf } = presentation
+
   // An empty slot has a name but no slides — there is nothing to present yet.
-  if (!presentation.pdf) {
+  if (!pdf) {
     return (
       <div className="page page-narrow">
         <div className="page-head">
@@ -53,7 +59,7 @@ export default async function PresentationPage({
         </div>
         <Link href={`/m/${presentation.meetingId}`} className="button">목록</Link>
       </div>
-      <Deck presentation={presentation} />
+      <Deck presentation={{ ...presentation, pdf }} />
     </div>
   )
 }
