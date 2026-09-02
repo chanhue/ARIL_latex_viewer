@@ -28,7 +28,7 @@ export default async function MeetingPage({
         {/* A seminar has one presenter, so there is no order to draw. */}
         {meeting.kind !== 'seminar' && (
           <div className="page-actions">
-            <Link href={`/m/${meeting.id}/order`} className="button">발표 순서</Link>
+            <Link href={`/m/${meeting.id}/order`} className="button">진행 여부</Link>
           </div>
         )}
       </div>

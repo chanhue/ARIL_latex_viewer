@@ -230,30 +230,46 @@ body:has(.login-page) .site-header nav { display: none; }
 
 .order-picker { display: grid; gap: 24px; }
 
-.check-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.check-list label {
+/* A grid rather than one long column: the whole roster has to be takeable in
+   at a glance, since ticking is the only thing this page does. */
+.check-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.check-grid label {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: 10px;
+  padding: 14px 16px;
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--card);
   cursor: pointer;
   transition: box-shadow 0.16s;
 }
-.check-list label:hover { box-shadow: var(--shadow); }
-.check-list label.on { box-shadow: 0 0 0 2px var(--accent) inset, var(--card); }
-.check-list input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
-.check-name { font-size: 16px; font-weight: 700; }
-.check-note {
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 600;
+.check-grid label:hover { box-shadow: var(--shadow); }
+.check-grid label.on { box-shadow: 0 0 0 2px var(--accent) inset, var(--card); }
+.check-grid label.on .check-name { color: var(--accent); }
+.check-grid input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.check-name { font-size: 15px; font-weight: 700; }
+
+.order-hint {
+  margin: 0;
+  padding: 28px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--border-strong);
+  text-align: center;
   color: var(--muted);
+  font-size: 14px;
 }
 
 .order-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+/* A redraw is in flight; dim rather than blank so the list does not jump. */
+.order-list.drawing { opacity: 0.45; transition: opacity 0.12s; }
 .order-list li {
   display: flex;
   align-items: center;

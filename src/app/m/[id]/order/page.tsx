@@ -20,7 +20,7 @@ export default async function OrderPage({
   return (
     <div className="page page-narrow">
       <div className="page-head">
-        <h1>발표 순서</h1>
+        <h1>진행 여부</h1>
       </div>
 
       <OrderPicker meeting={meeting} slots={slots} />
