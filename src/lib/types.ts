@@ -32,8 +32,6 @@ export type Presentation = {
   id: string
   meetingId: string
   presenter: string
-  /** Optional talk title; empty string when the presenter did not give one. */
-  title: string
   pdf: StoredFile | null
   videos: StoredFile[]
   createdAt: string
@@ -49,3 +47,10 @@ export type MeetingSummary = Meeting & {
 
 /** A presentation together with the meeting it belongs to. */
 export type PresentationWithMeeting = Presentation & { meeting: Meeting }
+
+/**
+ * The roster a new meeting is built from. One list for the whole site: a lab
+ * has the same members week to week, so retyping the names every time is the
+ * chore this removes.
+ */
+export type Template = { members: string[] }

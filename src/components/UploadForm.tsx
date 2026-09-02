@@ -40,7 +40,6 @@ export function UploadForm({
   const router = useRouter()
 
   const [presenter, setPresenter] = useState(initialPresenter)
-  const [title, setTitle] = useState('')
   const [pdf, setPdf] = useState<File | null>(null)
   const [videos, setVideos] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
@@ -105,7 +104,6 @@ export function UploadForm({
       body: JSON.stringify({
         meetingId: meeting.id,
         presenter,
-        title,
         pdf: storedPdf,
         videos: storedVideos,
       }),
@@ -121,7 +119,6 @@ export function UploadForm({
     const body = new FormData()
     body.set('meetingId', meeting.id)
     body.set('presenter', presenter)
-    body.set('title', title)
     body.set('pdf', pdf as File)
     for (const video of videos) body.append('videos', video)
 
@@ -177,15 +174,6 @@ export function UploadForm({
         <small>
           저장 위치: <code>{meeting.folder}/{presenter.trim() || '이름'}/</code>
         </small>
-      </label>
-
-      <label className="field">
-        <span>발표 제목 (선택)</span>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Diffusion 기반 궤적 예측 중간 보고"
-        />
       </label>
 
       <label className="field">

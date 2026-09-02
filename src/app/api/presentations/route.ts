@@ -61,7 +61,6 @@ export async function POST(request: Request) {
 
   const meetingId = String(payload.meetingId ?? '')
   const presenter = String(payload.presenter ?? '').trim()
-  const title = String(payload.title ?? '').trim()
 
   const meeting = await getMeeting(meetingId)
   if (!meeting) return NextResponse.json({ error: '랩미팅을 찾을 수 없습니다.' }, { status: 404 })
@@ -102,7 +101,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const slot = await fillSlot({ meetingId, presenter, title, pdf, videos })
+    const slot = await fillSlot({ meetingId, presenter, pdf, videos })
     return NextResponse.json({ id: slot.id }, { status: 201 })
   } catch (err) {
     console.error('failed to record presentation', err)

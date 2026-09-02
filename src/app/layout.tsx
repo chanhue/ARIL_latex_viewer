@@ -32,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             ARI LAB <span>랩미팅</span>
           </Link>
           <nav>
+            <Link href="/template" className="button">템플릿</Link>
             <Link href="/meetings/new" className="button button-primary">새 랩미팅</Link>
             {guarded && <LogoutButton />}
           </nav>

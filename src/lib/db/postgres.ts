@@ -28,7 +28,6 @@ type PresentationRow = {
   id: string
   meeting_id: string
   presenter: string
-  title: string
   pdf: StoredFile | null
   videos: StoredFile[] | null
   created_at: string | Date
@@ -116,11 +115,19 @@ async function createSchema(query: any): Promise<void> {
         id         TEXT PRIMARY KEY,
         meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
         presenter  TEXT NOT NULL,
+        -- Vestigial: presentations no longer have their own title. Kept with a
+        -- default so databases created by an earlier version keep working
+        -- without a migration.
         title      TEXT NOT NULL DEFAULT '',
         pdf        JSONB,
         videos     JSONB NOT NULL DEFAULT '[]'::jsonb,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS settings (
+        key   TEXT PRIMARY KEY,
+        value JSONB NOT NULL
       );
 
       CREATE INDEX IF NOT EXISTS meetings_date_idx ON meetings (date DESC);
@@ -157,7 +164,6 @@ function toPresentation(row: PresentationRow): Presentation {
     id: row.id,
     meetingId: row.meeting_id,
     presenter: row.presenter,
-    title: row.title ?? '',
     pdf: row.pdf ?? null,
     videos: row.videos ?? [],
     createdAt: new Date(row.created_at).toISOString(),
@@ -259,10 +265,9 @@ export async function addPresentation(presentation: Presentation): Promise<Prese
   const query = await sql()
   await query`
     INSERT INTO presentations
-      (id, meeting_id, presenter, title, pdf, videos, created_at, updated_at)
+      (id, meeting_id, presenter, pdf, videos, created_at, updated_at)
     VALUES (
       ${presentation.id}, ${presentation.meetingId}, ${presentation.presenter},
-      ${presentation.title},
       ${presentation.pdf ? JSON.stringify(presentation.pdf) : null}::jsonb,
       ${JSON.stringify(presentation.videos)}::jsonb,
       ${presentation.createdAt}, ${presentation.updatedAt}
@@ -298,7 +303,6 @@ export async function updatePresentation(
   const rows = (await query`
     UPDATE presentations SET
       presenter  = ${merged.presenter},
-      title      = ${merged.title},
       pdf        = ${merged.pdf ? JSON.stringify(merged.pdf) : null}::jsonb,
       videos     = ${JSON.stringify(merged.videos)}::jsonb,
       updated_at = ${merged.updatedAt}
@@ -314,4 +318,26 @@ export async function removePresentation(id: string): Promise<Presentation | nul
     DELETE FROM presentations WHERE id = ${id} RETURNING *
   `) as PresentationRow[]
   return rows[0] ? toPresentation(rows[0]) : null
+}
+
+/* -------------------------------------------------------------- template */
+
+const TEMPLATE_KEY = 'template'
+
+export async function getTemplate(): Promise<string[]> {
+  const query = await sql()
+  const rows = (await query`
+    SELECT value FROM settings WHERE key = ${TEMPLATE_KEY}
+  `) as Array<{ value: { members?: string[] } }>
+  return rows[0]?.value?.members ?? []
+}
+
+export async function setTemplate(members: string[]): Promise<string[]> {
+  const query = await sql()
+  await query`
+    INSERT INTO settings (key, value)
+    VALUES (${TEMPLATE_KEY}, ${JSON.stringify({ members })}::jsonb)
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+  `
+  return members
 }

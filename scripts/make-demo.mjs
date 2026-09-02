@@ -224,7 +224,6 @@ async function upload(meetingId, cookie) {
   const form = new FormData()
   form.set('meetingId', meetingId)
   form.set('presenter', '데모')
-  form.set('title', 'Video-in-Slide Demo')
   form.set('pdf', new File([pdfBytes], 'demo-slides.pdf', { type: 'application/pdf' }))
   form.append('videos', new File([videoBytes], 'demo.mp4', { type: 'video/mp4' }))
 

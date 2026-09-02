@@ -250,11 +250,34 @@ export function Deck({
     }
   }, [])
 
+  /** Read the stage box now and re-render the page at that size. */
+  const measureStage = useCallback(() => {
+    const el = stageRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const next = { w: Math.floor(rect.width), h: Math.floor(rect.height) }
+    if (next.w < 10 || next.h < 10) return
+    if (next.w === stageSizeRef.current.w && next.h === stageSizeRef.current.h) return
+    stageSizeRef.current = next
+    setStageSize(next)
+  }, [])
+
   useEffect(() => {
-    const onChange = () => setPresenting(Boolean(document.fullscreenElement))
+    const onChange = () => {
+      setPresenting(Boolean(document.fullscreenElement))
+      // The ResizeObserver catches this too, but only after the browser has
+      // laid out the fullscreen element and React has dropped the stage's
+      // padding — long enough to show one frame of the slide at its old,
+      // smaller size. Measure again on the next two frames so the slide is
+      // already filling the screen when the transition finishes.
+      requestAnimationFrame(() => {
+        measureStage()
+        requestAnimationFrame(measureStage)
+      })
+    }
     document.addEventListener('fullscreenchange', onChange)
     return () => document.removeEventListener('fullscreenchange', onChange)
-  }, [])
+  }, [measureStage])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

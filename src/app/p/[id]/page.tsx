@@ -47,9 +47,9 @@ export default async function PresentationPage({
     <div className="viewer">
       <div className="viewer-head">
         <div>
-          <h1>{presentation.title || presentation.presenter}</h1>
+          <h1>{presentation.presenter}</h1>
           <p>
-            {presentation.meeting.title} · {presentation.presenter}
+            {presentation.meeting.title}
             {presentation.videos.length > 0 && (
               <span className="viewer-videos">
                 figs/ {presentation.videos.map((v) => v.name).join(', ')}

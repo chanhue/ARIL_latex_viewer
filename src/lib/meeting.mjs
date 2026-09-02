@@ -85,3 +85,36 @@ export function presenterTaken(presenter, existing = []) {
   if (!target) return false
   return existing.some((name) => sanitizeSegment(name).toLowerCase() === target)
 }
+
+/**
+ * Clean up a roster of member names.
+ *
+ * The roster is the template a new meeting is built from, so the same rules
+ * that protect storage paths apply here: a name has to survive sanitising, and
+ * two members cannot collapse to the same folder.
+ *
+ * @param {unknown} input
+ * @returns {{members: string[]} | {error: string}}
+ */
+export function normalizeMembers(input) {
+  if (!Array.isArray(input)) return { error: '명단 형식이 올바르지 않습니다.' }
+  if (input.length > 100) return { error: '명단이 너무 깁니다. (최대 100명)' }
+
+  const members = []
+  for (const raw of input) {
+    const name = String(raw ?? '').trim()
+    if (!name) continue // blank rows are just empty inputs, not an error
+
+    if (!sanitizeSegment(name)) {
+      return { error: `'${name}'은(는) 이름으로 쓸 수 없습니다.` }
+    }
+    if (name.length > 50) {
+      return { error: `'${name.slice(0, 20)}…'은(는) 너무 깁니다.` }
+    }
+    if (presenterTaken(name, members)) {
+      return { error: `'${name}'이(가) 중복됩니다.` }
+    }
+    members.push(name)
+  }
+  return { members }
+}

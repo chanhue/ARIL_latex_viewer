@@ -51,7 +51,6 @@ export async function POST(request: Request) {
 
   const meetingId = String(form.get('meetingId') ?? '')
   const presenter = String(form.get('presenter') ?? '').trim()
-  const title = String(form.get('title') ?? '').trim()
   const pdf = form.get('pdf')
 
   const meeting = await getMeeting(meetingId)
@@ -110,7 +109,6 @@ export async function POST(request: Request) {
     const slot = await fillSlot({
       meetingId,
       presenter,
-      title,
       pdf: storedPdf,
       videos: storedVideos,
     })

@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
-import { addMeeting, listMeetings, meetingTitles } from '@/lib/db'
+import { addMeeting, getTemplate, listMeetings, meetingTitles } from '@/lib/db'
 import { createEmptySlot } from '@/lib/slots'
-import { meetingTitleFor, presenterTaken, sanitizeSegment } from '@/lib/meeting.mjs'
+import { meetingTitleFor, normalizeMembers, sanitizeSegment } from '@/lib/meeting.mjs'
 import type { Meeting } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -12,8 +12,12 @@ export async function GET() {
 }
 
 /**
- * Create a meeting. `presenters` is optional — pass names to set up empty slots
- * up front, or leave it out and let slots appear as people upload.
+ * Create a meeting.
+ *
+ * With no `presenters` the saved roster template is used, which is the normal
+ * case: picking a date is the only decision. Passing an explicit list overrides
+ * the template for this one meeting; passing an empty list creates no slots at
+ * all, and people get one when they upload.
  */
 export async function POST(request: Request) {
   let payload: Record<string, unknown>
@@ -44,20 +48,10 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString(),
   }
 
-  const rawPresenters = Array.isArray(payload.presenters) ? payload.presenters : []
-  const names: string[] = []
-  for (const raw of rawPresenters) {
-    const name = String(raw ?? '').trim()
-    if (!name) continue
-    if (!sanitizeSegment(name)) {
-      return NextResponse.json({ error: `'${name}'은(는) 이름으로 쓸 수 없습니다.` }, { status: 400 })
-    }
-    // Two identical names in one meeting would share a folder.
-    if (presenterTaken(name, names)) {
-      return NextResponse.json({ error: `'${name}'이(가) 중복됩니다.` }, { status: 400 })
-    }
-    names.push(name)
-  }
+  const source = Array.isArray(payload.presenters) ? payload.presenters : await getTemplate()
+  const result = normalizeMembers(source)
+  if ('error' in result) return NextResponse.json({ error: result.error }, { status: 400 })
+  const names = result.members
 
   try {
     await addMeeting(meeting)

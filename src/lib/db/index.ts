@@ -35,6 +35,9 @@ type Backend = {
     patch: Partial<Omit<Presentation, 'id' | 'meetingId' | 'createdAt'>>,
   ) => Promise<Presentation | null>
   removePresentation: (id: string) => Promise<Presentation | null>
+
+  getTemplate: () => Promise<string[]>
+  setTemplate: (members: string[]) => Promise<string[]>
 }
 
 // Loaded lazily so the unused backend's driver is never imported — that keeps
@@ -89,4 +92,12 @@ export async function updatePresentation(
 
 export async function removePresentation(id: string) {
   return (await backend()).removePresentation(id)
+}
+
+export async function getTemplate() {
+  return (await backend()).getTemplate()
+}
+
+export async function setTemplate(members: string[]) {
+  return (await backend()).setTemplate(members)
 }

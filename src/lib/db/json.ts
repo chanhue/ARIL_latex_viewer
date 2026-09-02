@@ -22,7 +22,7 @@ import type {
 const DATA_DIR = path.join(process.cwd(), '.data')
 const DB_FILE = path.join(DATA_DIR, 'db.json')
 
-type Shape = { meetings: Meeting[]; presentations: Presentation[] }
+type Shape = { meetings: Meeting[]; presentations: Presentation[]; template: string[] }
 
 let writeQueue: Promise<unknown> = Promise.resolve()
 
@@ -30,10 +30,14 @@ async function readAll(): Promise<Shape> {
   try {
     const raw = await fs.readFile(DB_FILE, 'utf8')
     const parsed = JSON.parse(raw) as Partial<Shape>
-    return { meetings: parsed.meetings ?? [], presentations: parsed.presentations ?? [] }
+    return {
+      meetings: parsed.meetings ?? [],
+      presentations: parsed.presentations ?? [],
+      template: parsed.template ?? [],
+    }
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      return { meetings: [], presentations: [] }
+      return { meetings: [], presentations: [], template: [] }
     }
     throw err
   }
@@ -152,5 +156,19 @@ export async function removePresentation(id: string): Promise<Presentation | nul
     const index = data.presentations.findIndex((p) => p.id === id)
     if (index === -1) return null
     return data.presentations.splice(index, 1)[0]
+  })
+}
+
+/* -------------------------------------------------------------- template */
+
+export async function getTemplate(): Promise<string[]> {
+  const { template } = await readAll()
+  return template
+}
+
+export async function setTemplate(members: string[]): Promise<string[]> {
+  return transact((data) => {
+    data.template = members
+    return members
   })
 }

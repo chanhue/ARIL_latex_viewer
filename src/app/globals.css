@@ -301,6 +301,43 @@ body:has(.login-page) .site-header nav { display: none; }
   transition: width 0.2s ease-out;
 }
 
+.roster {
+  padding: 12px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.9;
+  resize: vertical;
+  min-height: 180px;
+}
+.roster:focus { outline: none; border-color: var(--ink); }
+
+.template-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 13px;
+}
+.template-empty a { border-bottom: 1px solid var(--muted); }
+.template-empty a:hover { color: var(--text); border-bottom-color: var(--text); }
+
+.field small a { border-bottom: 1px solid var(--border-strong); }
+.field small a:hover { color: var(--text); border-bottom-color: var(--text); }
+
+.form-ok {
+  margin: 0;
+  padding: 11px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font-size: 13px;
+}
+
 .form-error {
   margin: 0;
   padding: 11px 14px;

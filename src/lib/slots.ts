@@ -29,7 +29,6 @@ export async function findSlot(
 export async function fillSlot(options: {
   meetingId: string
   presenter: string
-  title: string
   pdf: StoredFile
   videos: StoredFile[]
 }): Promise<Presentation> {
@@ -39,7 +38,6 @@ export async function fillSlot(options: {
   if (existing) {
     const updated = await updatePresentation(existing.id, {
       presenter: options.presenter,
-      title: options.title,
       pdf: options.pdf,
       videos: options.videos,
     })
@@ -50,7 +48,6 @@ export async function fillSlot(options: {
     id: randomUUID(),
     meetingId: options.meetingId,
     presenter: options.presenter,
-    title: options.title,
     pdf: options.pdf,
     videos: options.videos,
     createdAt: now,
@@ -69,7 +66,6 @@ export async function createEmptySlot(
     id: randomUUID(),
     meetingId,
     presenter,
-    title: '',
     pdf: null,
     videos: [],
     createdAt: now,

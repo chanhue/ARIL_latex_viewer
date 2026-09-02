@@ -111,3 +111,24 @@ test('presenterTaken compares names as folders would', () => {
   assert.equal(presenterTaken('이영희', existing), false)
   assert.equal(presenterTaken('', existing), false)
 })
+
+test('normalizeMembers drops blanks and keeps order', async () => {
+  const { normalizeMembers } = await import('../src/lib/meeting.mjs')
+  assert.deepEqual(normalizeMembers(['김찬희', '', '  ', '홍길동']), {
+    members: ['김찬희', '홍길동'],
+  })
+  assert.deepEqual(normalizeMembers([]), { members: [] })
+  assert.deepEqual(normalizeMembers(['  여백  ']), { members: ['여백'] })
+})
+
+test('normalizeMembers rejects duplicates and unusable names', async () => {
+  const { normalizeMembers } = await import('../src/lib/meeting.mjs')
+  assert.ok('error' in normalizeMembers(['김찬희', '김찬희']))
+  // Same folder after sanitising counts as a duplicate.
+  assert.ok('error' in normalizeMembers(['홍 길동', '홍  길동']))
+  assert.ok('error' in normalizeMembers(['..']))
+  assert.ok('error' in normalizeMembers(['/']))
+  assert.ok('error' in normalizeMembers('not an array'))
+  assert.ok('error' in normalizeMembers(['x'.repeat(51)]))
+  assert.ok('error' in normalizeMembers(new Array(101).fill(0).map((_, i) => `p${i}`)))
+})
