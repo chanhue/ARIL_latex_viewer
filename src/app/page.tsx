@@ -28,10 +28,7 @@ export default async function HomePage() {
                   {meeting.uploadedCount === 0 ? (
                     <em className="pending">발표자 없음</em>
                   ) : (
-                    <>
-                      <span className="meeting-people">{meeting.presenters.join(', ')}</span>
-                      <em className="done">발표자 {meeting.uploadedCount}명</em>
-                    </>
+                    <em className="done">발표자 {meeting.uploadedCount}명</em>
                   )}
                 </span>
               </Link>

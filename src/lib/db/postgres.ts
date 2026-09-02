@@ -176,28 +176,21 @@ function toPresentation(row: PresentationRow): Presentation {
 export async function listMeetings(): Promise<MeetingSummary[]> {
   const query = await sql()
   const rows = (await query`
-    SELECT m.*,
-           COALESCE(p.slot_count, 0)    AS slot_count,
-           COALESCE(p.uploaded_count, 0) AS uploaded_count,
-           COALESCE(p.presenters, ARRAY[]::text[]) AS presenters
+    SELECT m.*, COALESCE(p.uploaded_count, 0) AS uploaded_count
     FROM meetings m
     LEFT JOIN (
-      SELECT meeting_id,
-             COUNT(*)                              AS slot_count,
-             COUNT(pdf)                            AS uploaded_count,
-             ARRAY_AGG(presenter ORDER BY created_at)
-               FILTER (WHERE pdf IS NOT NULL)         AS presenters
+      -- COUNT over a nullable column counts only the non-null ones, which is
+      -- exactly "how many people have uploaded".
+      SELECT meeting_id, COUNT(pdf) AS uploaded_count
       FROM presentations
       GROUP BY meeting_id
     ) p ON p.meeting_id = m.id
     ORDER BY m.date DESC, m.created_at DESC
-  `) as Array<MeetingRow & { slot_count: number; uploaded_count: number; presenters: string[] }>
+  `) as Array<MeetingRow & { uploaded_count: number }>
 
   return rows.map((row) => ({
     ...toMeeting(row),
-    slotCount: Number(row.slot_count),
     uploadedCount: Number(row.uploaded_count),
-    presenters: row.presenters ?? [],
   }))
 }
 
