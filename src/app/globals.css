@@ -1,10 +1,8 @@
 /*
- * Styled after the ARI Lab site (arisnu.squarespace.com).
- *
- * What that site actually is: a bright blue brand mark and pill buttons on
- * white, geometric sans headings in dark grey rather than black, light grey
- * bands separating sections, and Alice (a serif) used for short supporting
- * lines. Generous whitespace throughout.
+ * Styled after the ARI Lab site (arisnu.squarespace.com): a bright blue brand
+ * mark and pill buttons, geometric sans headings in dark grey rather than
+ * black, content in white blocks on a light grey ground, and Alice (a serif)
+ * for short supporting lines. Generous whitespace throughout.
  *
  * Sofia Pro is the site's own face and is not free, so Nunito Sans stands in —
  * the same rounded geometric feel, with a double-storey 'a'.
@@ -68,11 +66,7 @@ code {
   font-size: 0.88em;
 }
 
-h1, h2, h3 {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
+h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
 
 /* ------------------------------------------------------------- chrome */
 
@@ -145,33 +139,17 @@ body:has(.login-page) .site-header nav { display: none; }
   border-color: var(--border-strong);
   color: var(--text-2);
 }
-.button-primary:disabled:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.button-primary:disabled:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
 
 /* -------------------------------------------------------------- pages */
 
 .page { width: 100%; max-width: 940px; margin: 0 auto; padding: 64px 48px 96px; }
 .page-narrow { max-width: 620px; }
-
-/* Heading on the left, the page's own actions on the right. Actions live here
-   rather than in the site header so they do not follow you into a deck. */
-.page-head-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 32px;
-}
-.page-head-row p { margin-bottom: 0; }
-.page-head-row + * { margin-top: 44px; }
-.page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; padding-top: 6px; }
-
-.section + .section { margin-top: 76px; }
-
-.page-head h2 {
-  margin: 0 0 10px;
-  font-size: 30px;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
+.page-wide { max-width: 1180px; }
 
 .page-head h1 {
   margin: 0 0 12px;
@@ -187,15 +165,40 @@ body:has(.login-page) .site-header nav { display: none; }
 }
 .muted { color: var(--muted); font-size: 13px; }
 
+/* Two peer columns on the front page. They carry equal weight, so the two
+   headings are sized the same despite being h1 and h2. */
+.home-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: start;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.section-head h1,
+.section-head h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+}
+.page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+
 .empty {
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--card);
-  padding: 84px 24px;
+  padding: 52px 24px;
   text-align: center;
   color: var(--text-2);
 }
-.empty p { margin: 0 0 22px; font-family: var(--serif); font-size: 17px; }
+.empty p { margin: 0; font-family: var(--serif); font-size: 16px; }
 
 /* Meeting list */
 
@@ -204,25 +207,23 @@ body:has(.login-page) .site-header nav { display: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 24px 28px;
+  gap: 20px;
+  padding: 22px 26px;
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--card);
   transition: box-shadow 0.18s, transform 0.18s;
 }
-.meeting-list a:hover {
-  box-shadow: var(--shadow);
-  transform: translateY(-1px);
-}
-.meeting-title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
-.meeting-meta { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); }
+.meeting-list a:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+.meeting-title { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.meeting-meta { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
 .meeting-meta em {
   font-style: normal;
   font-size: 12px;
   font-weight: 700;
   padding: 4px 12px;
   border-radius: var(--pill);
+  white-space: nowrap;
 }
 .meeting-meta .pending { color: var(--accent); background: var(--accent-soft); }
 .meeting-meta .done { color: #3f9c6a; background: #e9f6ee; }
@@ -370,6 +371,7 @@ body:has(.login-page) .site-header nav { display: none; }
 }
 .file-list button:hover { color: var(--danger); }
 .file-list button:disabled { opacity: 0.35; cursor: not-allowed; }
+
 /* Files already in the slot. A row marked for deletion stays visible, struck
    through, so an accidental click can be undone before saving. */
 .existing-files li { background: transparent; box-shadow: none; border: 1px solid var(--border); }
@@ -547,11 +549,7 @@ body:has(.login-page) .site-header nav { display: none; }
   border-color: rgba(255, 255, 255, 0.45);
 }
 .deck-bar button:disabled { opacity: 0.3; cursor: not-allowed; }
-.deck-bar .deck-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
+.deck-bar .deck-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .deck-bar .deck-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 
 .deck-counter { display: flex; align-items: center; gap: 8px; color: #b0b0b0; font-size: 14px; }
@@ -600,10 +598,6 @@ body:has(.login-page) .site-header nav { display: none; }
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .deck.presenting .deck-bar { transition: opacity 0.16s ease; }
 }
 
 /* Overview grid */
@@ -700,35 +694,19 @@ body:has(.login-page) .site-header nav { display: none; }
 }
 .deck-hint dd { margin: 0; color: #b0b0b0; }
 
+/* ------------------------------------------------------------ narrow */
+
+@media (max-width: 980px) {
+  .home-columns { grid-template-columns: 1fr; gap: 56px; }
+}
+
 @media (max-width: 760px) {
   .site-header { padding: 18px 22px; }
   .page { padding: 40px 22px 72px; }
-  /* Heading on the left, the page's own actions on the right. Actions live here
-   rather than in the site header so they do not follow you into a deck. */
-.page-head-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 32px;
-}
-.page-head-row p { margin-bottom: 0; }
-.page-head-row + * { margin-top: 44px; }
-.page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; padding-top: 6px; }
-
-.section + .section { margin-top: 76px; }
-
-.page-head h2 {
-  margin: 0 0 10px;
-  font-size: 30px;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.page-head h1 { font-size: 32px; }
+  .page-head h1 { font-size: 32px; }
+  .section-head h1, .section-head h2 { font-size: 24px; }
   .viewer-head { padding: 16px 22px; }
   .meeting-list a, .slot-list li { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .page-head-row { flex-direction: column; gap: 20px; }
-  .page-actions { padding-top: 0; }
   .field-row { grid-template-columns: 1fr; }
   .deck-bar { flex-wrap: wrap; padding: 12px 22px; }
   .deck-stage { padding: 10px 16px; }
