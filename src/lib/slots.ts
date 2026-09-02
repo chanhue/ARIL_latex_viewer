@@ -80,3 +80,20 @@ export function slotUrls(presentation: Presentation): string[] {
   if (presentation.pdf) urls.unshift(presentation.pdf.url)
   return urls
 }
+
+/**
+ * Display order for a meeting: people who have uploaded first, then everyone
+ * else, each group alphabetical.
+ *
+ * Reading the list during a meeting means finding the next deck, so what is
+ * actually there comes first; the empty slots stay visible underneath as the
+ * list of who still owes something. Alphabetical within each group because
+ * upload order is arbitrary and shifts under you as people submit.
+ */
+export function sortSlots(slots: Presentation[]): Presentation[] {
+  return slots.slice().sort((a, b) => {
+    const filled = Number(Boolean(b.pdf)) - Number(Boolean(a.pdf))
+    if (filled !== 0) return filled
+    return a.presenter.localeCompare(b.presenter, 'ko')
+  })
+}

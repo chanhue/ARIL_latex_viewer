@@ -124,9 +124,6 @@ export function MeetingSlots({
           disabled={busy}
         />
         <button type="submit" className="button" disabled={busy || !draft.trim()}>추가</button>
-        <Link href={`/m/${meeting.id}/upload`} className="button button-primary">
-          내 자료 올리기
-        </Link>
       </form>
 
       {error && <p className="form-error">{error}</p>}

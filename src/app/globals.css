@@ -85,19 +85,19 @@ h1, h2, h3 {
 }
 
 .brand {
-  font-size: 25px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 26px;
   font-weight: 800;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
   color: var(--accent);
-  text-transform: uppercase;
 }
 .brand span {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--muted);
-  margin-left: 10px;
-  text-transform: none;
 }
 
 .site-header nav { display: flex; align-items: center; gap: 10px; }
@@ -148,6 +148,18 @@ body:has(.login-page) .site-header nav { display: none; }
 
 .page { width: 100%; max-width: 940px; margin: 0 auto; padding: 64px 48px 96px; }
 .page-narrow { max-width: 620px; }
+
+/* Heading on the left, the page's own actions on the right. Actions live here
+   rather than in the site header so they do not follow you into a deck. */
+.page-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+}
+.page-head-row p { margin-bottom: 0; }
+.page-head-row + * { margin-top: 44px; }
+.page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; padding-top: 6px; }
 
 .page-head h1 {
   margin: 0 0 12px;
@@ -664,9 +676,23 @@ body:has(.login-page) .site-header nav { display: none; }
 @media (max-width: 760px) {
   .site-header { padding: 18px 22px; }
   .page { padding: 40px 22px 72px; }
-  .page-head h1 { font-size: 32px; }
+  /* Heading on the left, the page's own actions on the right. Actions live here
+   rather than in the site header so they do not follow you into a deck. */
+.page-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+}
+.page-head-row p { margin-bottom: 0; }
+.page-head-row + * { margin-top: 44px; }
+.page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; padding-top: 6px; }
+
+.page-head h1 { font-size: 32px; }
   .viewer-head { padding: 16px 22px; }
   .meeting-list a, .slot-list li { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .page-head-row { flex-direction: column; gap: 20px; }
+  .page-actions { padding-top: 0; }
   .field-row { grid-template-columns: 1fr; }
   .deck-bar { flex-wrap: wrap; padding: 12px 22px; }
   .deck-stage { padding: 10px 16px; }

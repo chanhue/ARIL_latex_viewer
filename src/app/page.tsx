@@ -8,9 +8,15 @@ export default async function HomePage() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <h1>랩미팅</h1>
-        <p>회차를 만들고, 각자 자기 이름 아래에 발표 자료와 영상을 올립니다.</p>
+      <div className="page-head page-head-row">
+        <div>
+          <h1>랩미팅</h1>
+          <p>회차를 만들고, 각자 자기 이름 아래에 발표 자료와 영상을 올립니다.</p>
+        </div>
+        <div className="page-actions">
+          <Link href="/template" className="button">템플릿</Link>
+          <Link href="/meetings/new" className="button button-primary">새 랩미팅</Link>
+        </div>
       </div>
 
       {meetings.length === 0 ? (

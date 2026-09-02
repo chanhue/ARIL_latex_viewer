@@ -5,7 +5,7 @@ import { LogoutButton } from '@/components/LogoutButton'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'ARI LAB 랩미팅',
+  title: 'Aril presentation',
   description: '랩미팅 발표 자료를 올리고 그대로 발표 모드로 넘어가는 뷰어',
 }
 
@@ -38,13 +38,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="site-header">
           <Link href="/" className="brand">
-            ARI LAB <span>랩미팅</span>
+            Aril <span>presentation</span>
           </Link>
-          <nav>
-            <Link href="/template" className="button">템플릿</Link>
-            <Link href="/meetings/new" className="button button-primary">새 랩미팅</Link>
-            {guarded && <LogoutButton />}
-          </nav>
+          {/* Only the way out lives here. Making a meeting and editing the
+              roster belong to the meeting list, not to every page — a viewer
+              in presentation mode has no use for them. */}
+          {guarded && (
+            <nav>
+              <LogoutButton />
+            </nav>
+          )}
         </header>
         <main>{children}</main>
       </body>

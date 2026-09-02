@@ -81,7 +81,7 @@ export function TemplateEditor({ initialMembers }: { initialMembers: string[] })
         <small>
           {members.length}명
           {duplicate && <> · 중복: <strong>{duplicate}</strong></>}
-          {' · '}적어둔 순서대로 랩미팅에 슬롯이 만들어집니다.
+          {' · '}이 명단대로 랩미팅에 슬롯이 만들어집니다.
         </small>
       </label>
 
