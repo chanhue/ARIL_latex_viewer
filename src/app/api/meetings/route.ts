@@ -2,8 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { addMeeting, getTemplate, listMeetings, meetingTitles } from '@/lib/db'
 import { createEmptySlot } from '@/lib/slots'
-import { meetingTitleFor, normalizeMembers, sanitizeSegment } from '@/lib/meeting.mjs'
-import type { Meeting } from '@/lib/types'
+import {
+  isMeetingKind,
+  meetingTitleFor,
+  normalizeMembers,
+  sanitizeSegment,
+} from '@/lib/meeting.mjs'
+import type { Meeting, MeetingKind } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,12 +17,11 @@ export async function GET() {
 }
 
 /**
- * Create a meeting.
+ * Create a meeting or a seminar.
  *
- * With no `presenters` the saved roster template is used, which is the normal
- * case: picking a date is the only decision. Passing an explicit list overrides
- * the template for this one meeting; passing an empty list creates no slots at
- * all, and people get one when they upload.
+ * A meeting with no `presenters` uses the saved roster template, which is the
+ * normal case: picking a date is the only decision. A seminar has no template —
+ * it is one person, named here.
  */
 export async function POST(request: Request) {
   let payload: Record<string, unknown>
@@ -27,6 +31,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
   }
 
+  const kind: MeetingKind = isMeetingKind(payload.kind) ? payload.kind : 'meeting'
   const date = String(payload.date ?? '').trim()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: '날짜를 골라 주세요.' }, { status: 400 })
@@ -34,7 +39,7 @@ export async function POST(request: Request) {
 
   // The title carries a counter when a date already has a meeting, which is
   // also what keeps the storage folder unique.
-  const title = meetingTitleFor(date, await meetingTitles())
+  const title = meetingTitleFor(date, await meetingTitles(), kind)
   if (!title) return NextResponse.json({ error: '날짜가 올바르지 않습니다.' }, { status: 400 })
 
   const folder = sanitizeSegment(title)
@@ -42,16 +47,26 @@ export async function POST(request: Request) {
 
   const meeting: Meeting = {
     id: randomUUID(),
+    kind,
     date,
     title,
     folder,
     createdAt: new Date().toISOString(),
   }
 
-  const source = Array.isArray(payload.presenters) ? payload.presenters : await getTemplate()
+  const source = Array.isArray(payload.presenters)
+    ? payload.presenters
+    : kind === 'seminar'
+      ? []
+      : await getTemplate()
+
   const result = normalizeMembers(source)
   if ('error' in result) return NextResponse.json({ error: result.error }, { status: 400 })
   const names = result.members
+
+  if (kind === 'seminar' && names.length !== 1) {
+    return NextResponse.json({ error: '발표자 한 명을 입력해 주세요.' }, { status: 400 })
+  }
 
   try {
     await addMeeting(meeting)

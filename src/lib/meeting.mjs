@@ -23,17 +23,34 @@ export function shortDate(date) {
 }
 
 /**
- * The auto-generated meeting name. A second meeting on the same day gets a
- * counter so the name — and therefore the storage folder — stays unique.
+ * Two kinds of event share this whole structure. A lab meeting has several
+ * presenters drawn from the roster template; a seminar has exactly one, named
+ * when it is created.
+ */
+export const MEETING_KINDS = ['meeting', 'seminar']
+
+const KIND_LABELS = { meeting: 'LAB Meeting', seminar: 'LAB Seminar' }
+
+/** @param {unknown} kind */
+export function isMeetingKind(kind) {
+  return typeof kind === 'string' && MEETING_KINDS.includes(kind)
+}
+
+/**
+ * The auto-generated event name. A second event of the same kind on the same
+ * day gets a counter so the name — and therefore the storage folder — stays
+ * unique.
  *
  * @param {string} date YYYY-MM-DD
  * @param {string[]} taken titles already in use
+ * @param {'meeting'|'seminar'} kind
  */
-export function meetingTitleFor(date, taken = []) {
+export function meetingTitleFor(date, taken = [], kind = 'meeting') {
   const short = shortDate(date)
   if (!short) return null
 
-  const base = `${short} LAB Meeting`
+  const label = KIND_LABELS[kind] ?? KIND_LABELS.meeting
+  const base = `${short} ${label}`
   const used = new Set(taken.map((t) => String(t).trim()))
   if (!used.has(base)) return base
 

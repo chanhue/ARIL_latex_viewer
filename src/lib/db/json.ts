@@ -31,7 +31,11 @@ async function readAll(): Promise<Shape> {
     const raw = await fs.readFile(DB_FILE, 'utf8')
     const parsed = JSON.parse(raw) as Partial<Shape>
     return {
-      meetings: parsed.meetings ?? [],
+      // Records written before seminars existed have no kind.
+      meetings: (parsed.meetings ?? []).map((meeting) => ({
+        ...meeting,
+        kind: meeting.kind ?? 'meeting',
+      })),
       presentations: parsed.presentations ?? [],
       template: parsed.template ?? [],
     }

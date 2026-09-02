@@ -8,10 +8,18 @@ export type StoredFile = {
 }
 
 /**
- * One lab meeting — the "26.09.02 LAB Meeting" folder.
+ * A lab meeting has several presenters, taken from the roster template.
+ * A seminar has exactly one, named when it is created. Everything else about
+ * them — folders, slots, the viewer — is identical.
+ */
+export type MeetingKind = 'meeting' | 'seminar'
+
+/**
+ * One event — the "26.09.02 LAB Meeting" folder.
  */
 export type Meeting = {
   id: string
+  kind: MeetingKind
   /** YYYY-MM-DD */
   date: string
   /** Display name, auto-generated from the date. Unique across meetings. */

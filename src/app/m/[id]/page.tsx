@@ -27,7 +27,7 @@ export default async function MeetingPage({
       <MeetingSlots meeting={meeting} presentations={presentations} />
 
       <p className="back-link">
-        <Link href="/">← 랩미팅 목록</Link>
+        <Link href="/">← 목록</Link>
       </p>
     </div>
   )

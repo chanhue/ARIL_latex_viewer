@@ -132,3 +132,29 @@ test('normalizeMembers rejects duplicates and unusable names', async () => {
   assert.ok('error' in normalizeMembers(['x'.repeat(51)]))
   assert.ok('error' in normalizeMembers(new Array(101).fill(0).map((_, i) => `p${i}`)))
 })
+
+test('meetingTitleFor names seminars separately', async () => {
+  const { meetingTitleFor, isMeetingKind } = await import('../src/lib/meeting.mjs')
+
+  assert.equal(meetingTitleFor('2026-09-02', [], 'seminar'), '26.09.02 LAB Seminar')
+  assert.equal(meetingTitleFor('2026-09-02', [], 'meeting'), '26.09.02 LAB Meeting')
+
+  // A meeting and a seminar on the same day do not collide, so neither gets a
+  // counter from the other's existence.
+  assert.equal(
+    meetingTitleFor('2026-09-02', ['26.09.02 LAB Meeting'], 'seminar'),
+    '26.09.02 LAB Seminar',
+  )
+  assert.equal(
+    meetingTitleFor('2026-09-02', ['26.09.02 LAB Seminar'], 'seminar'),
+    '26.09.02 LAB Seminar (2)',
+  )
+
+  // An unknown kind falls back rather than producing a broken folder name.
+  assert.equal(meetingTitleFor('2026-09-02', [], 'nonsense'), '26.09.02 LAB Meeting')
+
+  assert.equal(isMeetingKind('seminar'), true)
+  assert.equal(isMeetingKind('meeting'), true)
+  assert.equal(isMeetingKind('workshop'), false)
+  assert.equal(isMeetingKind(null), false)
+})

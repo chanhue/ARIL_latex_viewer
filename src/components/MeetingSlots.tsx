@@ -69,7 +69,8 @@ export function MeetingSlots({
   }
 
   const removeMeeting = async () => {
-    if (!window.confirm(`'${meeting.title}' 전체를 삭제할까요? 올라온 자료도 모두 지워집니다.`)) return
+    const label = meeting.kind === 'seminar' ? '세미나' : '랩미팅'
+    if (!window.confirm(`'${meeting.title}' ${label}을 삭제할까요? 올라온 자료도 모두 지워집니다.`)) return
     setBusy(true)
     try {
       await fetch(`/api/meetings/${meeting.id}`, { method: 'DELETE' })
@@ -128,21 +129,24 @@ export function MeetingSlots({
         ))}
       </ul>
 
-      <form className="add-person" onSubmit={addPerson}>
-        <input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="발표자 이름 추가"
-          disabled={busy}
-        />
-        <button type="submit" className="button" disabled={busy || !draft.trim()}>추가</button>
-      </form>
+      {/* A seminar is one person by definition, so there is nobody to add. */}
+      {meeting.kind !== 'seminar' && (
+        <form className="add-person" onSubmit={addPerson}>
+          <input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="발표자 이름 추가"
+            disabled={busy}
+          />
+          <button type="submit" className="button" disabled={busy || !draft.trim()}>추가</button>
+        </form>
+      )}
 
       {error && <p className="form-error">{error}</p>}
 
       <p className="danger-zone">
         <button type="button" onClick={removeMeeting} disabled={busy}>
-          이 랩미팅 삭제
+          이 {meeting.kind === 'seminar' ? '세미나' : '랩미팅'} 삭제
         </button>
       </p>
     </div>

@@ -18,6 +18,7 @@ import type {
 
 type MeetingRow = {
   id: string
+  kind: string | null
   date: string
   title: string
   folder: string
@@ -105,6 +106,7 @@ async function createSchema(query: any): Promise<void> {
 
       CREATE TABLE IF NOT EXISTS meetings (
         id         TEXT PRIMARY KEY,
+        kind       TEXT NOT NULL DEFAULT 'meeting',
         date       TEXT NOT NULL,
         title      TEXT NOT NULL UNIQUE,
         folder     TEXT NOT NULL,
@@ -124,6 +126,10 @@ async function createSchema(query: any): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
+
+      -- CREATE TABLE IF NOT EXISTS does nothing on a database made before
+      -- seminars existed, so the column has to be added separately.
+      ALTER TABLE meetings ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'meeting';
 
       CREATE TABLE IF NOT EXISTS settings (
         key   TEXT PRIMARY KEY,
@@ -152,6 +158,7 @@ async function sql() {
 function toMeeting(row: MeetingRow): Meeting {
   return {
     id: row.id,
+    kind: row.kind === 'seminar' ? 'seminar' : 'meeting',
     date: row.date,
     title: row.title,
     folder: row.folder,
@@ -209,8 +216,11 @@ export async function meetingTitles(): Promise<string[]> {
 export async function addMeeting(meeting: Meeting): Promise<Meeting> {
   const query = await sql()
   await query`
-    INSERT INTO meetings (id, date, title, folder, created_at)
-    VALUES (${meeting.id}, ${meeting.date}, ${meeting.title}, ${meeting.folder}, ${meeting.createdAt})
+    INSERT INTO meetings (id, kind, date, title, folder, created_at)
+    VALUES (
+      ${meeting.id}, ${meeting.kind}, ${meeting.date},
+      ${meeting.title}, ${meeting.folder}, ${meeting.createdAt}
+    )
   `
   return meeting
 }
