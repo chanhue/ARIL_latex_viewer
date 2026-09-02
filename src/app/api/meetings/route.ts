@@ -55,7 +55,6 @@ export async function POST(request: Request) {
     date,
     title,
     folder,
-    order: [],
     createdAt: new Date().toISOString(),
   }
 

@@ -75,18 +75,21 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 22px 48px;
+  padding: 20px 48px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
 }
 
+/* Same face and weight as the section headings on the front page, so the
+   wordmark and the page titles read as one typographic system. Tracking is
+   eased off the headings' -0.02em because these are capitals, which crowd. */
 .brand {
   display: inline-flex;
   align-items: baseline;
-  gap: 9px;
-  font-size: 26px;
-  font-weight: 800;
+  gap: 10px;
+  font-size: 32px;
+  font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--accent);
 }

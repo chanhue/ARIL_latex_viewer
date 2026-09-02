@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="site-header">
           <Link href="/" className="brand">
-            Aril <span>presentation</span>
+            ARIL <span>presentation</span>
           </Link>
           {/* Only the way out lives here. Making a meeting and editing the
               roster belong to the meeting list, not to every page — a viewer
