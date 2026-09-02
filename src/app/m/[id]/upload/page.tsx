@@ -29,6 +29,15 @@ export default async function UploadPage({
   // fails. Say so on the page rather than after the upload has been attempted.
   const brokenHere = Boolean(process.env.VERCEL) && mode === 'multipart'
 
+  // Names only, never values. The dashboard is not a reliable answer to "is the
+  // token there" — OIDC credentials are issued at runtime and never appear in
+  // the stored variable list — so report what this process can actually see.
+  const storageVars = brokenHere
+    ? Object.keys(process.env)
+        .filter((key) => /BLOB|POSTGRES|DATABASE|NEON/i.test(key))
+        .sort()
+    : []
+
   return (
     <div className="page page-narrow">
       <div className="page-head">
@@ -40,11 +49,21 @@ export default async function UploadPage({
       </div>
 
       {brokenHere && (
-        <p className="form-error">
-          Blob 스토어가 연결되지 않아 업로드가 동작하지 않습니다. Vercel 프로젝트의 Storage 탭에서
-          Blob(Public)을 추가하고 <strong>재배포</strong>해 주세요. 환경변수는 빌드 시점에
-          주입되므로, 연결만 하고 재배포하지 않으면 반영되지 않습니다.
-        </p>
+        <div className="form-error">
+          <p style={{ margin: 0 }}>
+            Blob 스토어가 연결되지 않아 업로드가 동작하지 않습니다. Vercel 프로젝트의 Storage 탭에서
+            Blob(Public)을 이 프로젝트에 연결하고 <strong>재배포</strong>해 주세요. 환경변수는 빌드
+            시점에 주입되므로, 연결만 하고 재배포하지 않으면 반영되지 않습니다.
+          </p>
+          <p style={{ margin: '10px 0 0' }}>
+            지금 이 서버가 보고 있는 관련 환경변수{' '}
+            {storageVars.length === 0 ? (
+              <strong>없음</strong>
+            ) : (
+              <code>{storageVars.join(', ')}</code>
+            )}
+          </p>
+        </div>
       )}
 
       <UploadForm
