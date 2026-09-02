@@ -13,7 +13,26 @@ import path from 'node:path'
 const DATA_DIR = path.join(process.cwd(), '.data')
 const BLOB_DIR = path.join(DATA_DIR, 'blobs')
 
-export const usingVercelBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
+/**
+ * Find the Blob read-write token.
+ *
+ * Normally this is `BLOB_READ_WRITE_TOKEN`, injected when a store is connected
+ * to the project. But Vercel lets you set a prefix on the store's variables in
+ * Advanced Options, which produces e.g. `SLIDES_BLOB_READ_WRITE_TOKEN` — so
+ * fall back to any variable ending in that name rather than silently dropping
+ * to the local-disk path, which cannot work on Vercel at all.
+ */
+export function blobToken(): string | null {
+  const direct = process.env.BLOB_READ_WRITE_TOKEN
+  if (direct) return direct
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value && key.endsWith('BLOB_READ_WRITE_TOKEN')) return value
+  }
+  return null
+}
+
+export const usingVercelBlob = Boolean(blobToken())
 
 /** Strip anything that could escape the storage directory. */
 export function safeFileName(name: string): string {
@@ -37,6 +56,7 @@ export async function putFile(
       access: 'public',
       contentType,
       addRandomSuffix: false,
+      token: blobToken() ?? undefined,
     })
     return blob.url
   }
@@ -69,7 +89,7 @@ export function localPathFor(segments: string[]): string | null {
 export async function deleteFolder(prefix: string, urls: string[]): Promise<void> {
   if (usingVercelBlob) {
     const { del } = await import('@vercel/blob')
-    if (urls.length) await del(urls)
+    if (urls.length) await del(urls, { token: blobToken() ?? undefined })
     return
   }
 

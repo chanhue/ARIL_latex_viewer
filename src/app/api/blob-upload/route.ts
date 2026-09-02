@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { AUTH_COOKIE, labPassword, verifySession } from '@/lib/auth.mjs'
+import { blobToken } from '@/lib/storage'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -27,7 +28,8 @@ const ALLOWED_CONTENT_TYPES = [
 const MAX_BYTES = 500 * 1024 * 1024
 
 export async function POST(request: Request) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const token = blobToken()
+  if (!token) {
     return NextResponse.json(
       { error: 'Blob 업로드가 설정되지 않았습니다.' },
       { status: 501 },
@@ -42,6 +44,7 @@ export async function POST(request: Request) {
     const result = await handleUpload({
       body,
       request,
+      token,
       onBeforeGenerateToken: async () => {
         // Vercel's docs are emphatic about this: a token handed out without an
         // authorisation check lets anyone upload to the store, at our expense.

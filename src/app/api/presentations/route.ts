@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getMeeting } from '@/lib/db'
 import { createEmptySlot, fillSlot, findSlot } from '@/lib/slots'
 import { sanitizeSegment } from '@/lib/meeting.mjs'
+import { usingVercelBlob } from '@/lib/storage'
 import type { StoredFile } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
 
   /* ---- record a direct upload ---- */
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!usingVercelBlob) {
     return NextResponse.json(
       { error: '파일 등록은 Blob 업로드 환경에서만 쓰입니다.' },
       { status: 501 },
