@@ -213,7 +213,6 @@ export function UploadForm({
           value={presenter}
           onChange={(e) => setPresenter(e.target.value)}
           list="known-presenters"
-          placeholder="김찬희"
           required
         />
         <datalist id="known-presenters">
@@ -241,9 +240,7 @@ export function UploadForm({
               ),
             )}
           </ul>
-          <small>
-            ✕ 로 표시한 파일은 저장할 때 삭제됩니다. 같은 이름으로 새로 올리면 덮어씁니다.
-          </small>
+          <small>✕ 로 표시한 파일은 저장할 때 삭제됩니다.</small>
         </div>
       )}
 

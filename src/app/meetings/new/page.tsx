@@ -11,7 +11,6 @@ export default async function NewMeetingPage() {
     <div className="page page-narrow">
       <div className="page-head">
         <h1>New Meeting</h1>
-        <p>날짜를 고르면 템플릿 명단대로 폴더와 슬롯이 만들어집니다.</p>
       </div>
       <MeetingCreateForm kind="meeting" members={members} />
       <p className="back-link">

@@ -83,18 +83,15 @@ export function MeetingCreateForm({
           <input
             value={presenter}
             onChange={(e) => setPresenter(e.target.value)}
-            placeholder="김찬희"
             required
           />
-          <small>세미나는 발표자 한 명입니다.</small>
         </label>
       ) : (
         <div className="field">
           <span>템플릿 명단</span>
           {members.length === 0 ? (
             <p className="template-empty">
-              저장된 명단이 없습니다. 슬롯 없이 만들어지고, 각자 올릴 때 생깁니다.{' '}
-              <Link href="/template">템플릿 편집</Link>
+              저장된 명단이 없습니다. <Link href="/template">템플릿 편집</Link>
             </p>
           ) : (
             <ul className="chip-list">
@@ -104,7 +101,7 @@ export function MeetingCreateForm({
             </ul>
           )}
           <small>
-            이 명단대로 슬롯이 만들어집니다. <Link href="/template">템플릿 편집</Link>
+            <Link href="/template">템플릿 편집</Link>
           </small>
         </div>
       )}

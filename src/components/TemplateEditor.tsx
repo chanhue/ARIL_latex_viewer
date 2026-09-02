@@ -66,7 +66,7 @@ export function TemplateEditor({ initialMembers }: { initialMembers: string[] })
   return (
     <form className="form" onSubmit={save}>
       <label className="field">
-        <span>발표자 명단 — 한 줄에 한 명</span>
+        <span>발표자 명단</span>
         <textarea
           className="roster"
           value={text}
@@ -76,12 +76,10 @@ export function TemplateEditor({ initialMembers }: { initialMembers: string[] })
           }}
           rows={12}
           spellCheck={false}
-          placeholder={'김찬희\n홍길동\n이영희'}
         />
         <small>
           {members.length}명
           {duplicate && <> · 중복: <strong>{duplicate}</strong></>}
-          {' · '}이 명단대로 랩미팅에 슬롯이 만들어집니다.
         </small>
       </label>
 

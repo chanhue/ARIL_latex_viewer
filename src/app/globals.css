@@ -156,6 +156,9 @@ body:has(.login-page) .site-header nav { display: none; }
   font-size: 42px;
   line-height: 1.18;
 }
+/* With the explanatory line gone, the heading itself has to carry the gap. */
+.page-head > h1:last-child { margin-bottom: 36px; }
+
 .page-head p {
   margin: 0 0 44px;
   color: var(--text-2);
