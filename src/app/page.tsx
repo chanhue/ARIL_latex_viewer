@@ -10,7 +10,9 @@ export default async function HomePage() {
     <div className="page">
       <div className="page-head page-head-row">
         <div>
-          <h1>랩미팅</h1>
+          {/* English heading with a Korean line under it, the way the lab site
+              sets an English title over Korean detail. */}
+          <h1>Lab Meetings</h1>
           <p>회차를 만들고, 각자 자기 이름 아래에 발표 자료와 영상을 올립니다.</p>
         </div>
         <div className="page-actions">
@@ -21,7 +23,7 @@ export default async function HomePage() {
 
       {meetings.length === 0 ? (
         <div className="empty">
-          <p>아직 만들어진 랩미팅이 없습니다.</p>
+          <p>No meetings yet.</p>
           <Link href="/meetings/new" className="button button-primary">첫 랩미팅 만들기</Link>
         </div>
       ) : (
