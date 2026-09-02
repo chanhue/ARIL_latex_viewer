@@ -100,9 +100,6 @@ export async function POST(request: Request) {
   if (payload.pdf && !pdf) {
     return NextResponse.json({ error: 'PDF 정보가 올바르지 않습니다.' }, { status: 400 })
   }
-  if (!pdf && !keepPdf) {
-    return NextResponse.json({ error: 'PDF 파일이 필요합니다.' }, { status: 400 })
-  }
 
   const rawVideos = Array.isArray(payload.videos) ? payload.videos : []
   const videos: StoredFile[] = []
@@ -114,7 +111,6 @@ export async function POST(request: Request) {
 
   try {
     const slot = await fillSlot({ meetingId, presenter, pdf, videos, keepPdf, keepVideoNames })
-    if ('error' in slot) return NextResponse.json({ error: slot.error }, { status: 400 })
     return NextResponse.json({ id: slot.id }, { status: 201 })
   } catch (err) {
     console.error('failed to record presentation', err)

@@ -162,16 +162,14 @@ export function UploadForm({
     return payload.id as string
   }
 
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault()
+  /** Whether the slot will have slides once this save goes through. */
+  const willHavePdf = Boolean(pdf) || keepPdf
+
+  const save = async (openAfter: boolean) => {
     setError('')
 
     if (!presenter.trim()) {
       setError('이름을 입력해 주세요.')
-      return
-    }
-    if (!pdf && !keepPdf) {
-      setError('PDF 파일을 선택해 주세요.')
       return
     }
 
@@ -179,7 +177,7 @@ export function UploadForm({
     setProgress({})
     try {
       const id = mode === 'blob' ? await submitViaBlob() : await submitViaMultipart()
-      router.push(`/p/${id}`)
+      router.push(openAfter ? `/p/${id}` : `/m/${meeting.id}`)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : '업로드에 실패했습니다.')
@@ -206,7 +204,15 @@ export function UploadForm({
   )
 
   return (
-    <form className="form" onSubmit={submit}>
+    <form
+      className="form"
+      onSubmit={(event) => {
+        // Enter in a text field does the same as the button that would be
+        // the obvious one to press.
+        event.preventDefault()
+        void save(willHavePdf)
+      }}
+    >
       <label className="field">
         <span>이름</span>
         <input
@@ -250,7 +256,6 @@ export function UploadForm({
           type="file"
           accept="application/pdf,.pdf"
           onChange={(e) => setPdf(e.target.files?.[0] ?? null)}
-          required={!keepPdf}
         />
         {pdf ? (
           <small>
@@ -304,8 +309,18 @@ export function UploadForm({
 
       <div className="form-actions">
         {totalSize > 0 && <span className="muted">올릴 파일 {formatSize(totalSize)}</span>}
-        <button type="submit" className="button button-primary" disabled={busy}>
-          {busy ? '올리는 중…' : existing ? '저장하고 열기' : '올리고 열기'}
+        <button type="button" className="button" disabled={busy} onClick={() => void save(false)}>
+          {busy ? '저장 중…' : '저장'}
+        </button>
+        <button
+          type="button"
+          className="button button-primary"
+          // Nothing to open without slides; saving still works.
+          disabled={busy || !willHavePdf}
+          title={willHavePdf ? undefined : 'PDF가 있어야 열 수 있습니다'}
+          onClick={() => void save(true)}
+        >
+          저장하고 열기
         </button>
       </div>
     </form>

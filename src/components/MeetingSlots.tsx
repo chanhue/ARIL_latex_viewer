@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { Meeting, Presentation } from '@/lib/types'
 
+/** Slides, clips, or both — a slot with only clips is still a filled slot. */
+function hasFiles(slot: Presentation) {
+  return Boolean(slot.pdf) || slot.videos.length > 0
+}
+
 /**
  * The folder view of one meeting: a row per person, showing whether they have
  * uploaded. Empty rows are the point of registering names in advance — at a
@@ -85,12 +90,12 @@ export function MeetingSlots({
     <div className="slots">
       <ul className="slot-list">
         {presentations.map((slot) => (
-          <li key={slot.id} className={slot.pdf ? 'filled' : 'empty-slot'}>
+          <li key={slot.id} className={hasFiles(slot) ? 'filled' : 'empty-slot'}>
             <div className="slot-main">
               <span className="slot-name">{slot.presenter}</span>
-              {slot.pdf ? (
+              {hasFiles(slot) ? (
                 <span className="slot-files">
-                  <code>{slot.pdf.name}</code>
+                  {slot.pdf && <code>{slot.pdf.name}</code>}
                   {slot.videos.length > 0 && (
                     <span className="slot-videos">
                       figs/ {slot.videos.map((v) => v.name).join(', ')}
@@ -110,9 +115,9 @@ export function MeetingSlots({
                 href={`/m/${meeting.id}/upload?presenter=${encodeURIComponent(slot.presenter)}`}
                 className="button"
               >
-                {slot.pdf ? '교체' : '올리기'}
+                {hasFiles(slot) ? '수정' : '올리기'}
               </Link>
-              {slot.pdf && (
+              {hasFiles(slot) && (
                 <button
                   type="button"
                   className="button icon-button"

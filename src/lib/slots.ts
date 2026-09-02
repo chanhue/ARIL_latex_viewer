@@ -32,6 +32,10 @@ export async function findSlot(
  *
  * Files that end up referenced by nothing are deleted from storage; otherwise
  * every correction would leave a copy behind that nobody can reach or clean up.
+ *
+ * A slot may end up with no PDF at all. That is a real state — someone puts the
+ * clips up on Monday and the slides on Thursday — and the meeting page and the
+ * viewer both already handle it.
  */
 export async function fillSlot(options: {
   meetingId: string
@@ -40,7 +44,7 @@ export async function fillSlot(options: {
   videos: StoredFile[]
   keepPdf?: boolean
   keepVideoNames?: string[]
-}): Promise<Presentation | { error: string }> {
+}): Promise<Presentation> {
   const existing = await findSlot(options.meetingId, options.presenter)
   const now = new Date().toISOString()
 
@@ -49,7 +53,6 @@ export async function fillSlot(options: {
 
   const survivingPdf = keepPdf ? (existing?.pdf ?? null) : null
   const pdf = options.pdf ?? survivingPdf
-  if (!pdf) return { error: 'PDF 파일이 필요합니다.' }
 
   const incomingNames = new Set(options.videos.map((video) => video.name.toLowerCase()))
   const keptVideos = (existing?.videos ?? []).filter(
@@ -59,7 +62,9 @@ export async function fillSlot(options: {
   const videos = [...keptVideos, ...options.videos]
 
   if (existing) {
-    const stillUsed = new Set([pdf.url, ...videos.map((video) => video.url)])
+    const stillUsed = new Set(
+      [pdf?.url, ...videos.map((video) => video.url)].filter(Boolean) as string[],
+    )
     const orphaned = [existing.pdf, ...existing.videos].filter(
       (file): file is StoredFile => Boolean(file) && !stillUsed.has(file!.url),
     )

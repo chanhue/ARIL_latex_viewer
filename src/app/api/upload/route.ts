@@ -64,9 +64,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '이름으로 쓸 수 없는 문자입니다.' }, { status: 400 })
   }
   const newPdf = pdf instanceof File && pdf.size > 0 ? pdf : null
-  if (!newPdf && !keepPdf) {
-    return NextResponse.json({ error: 'PDF 파일을 선택해 주세요.' }, { status: 400 })
-  }
   if (newPdf && extensionOf(newPdf.name) !== 'pdf') {
     return NextResponse.json({ error: '발표 자료는 PDF만 올릴 수 있습니다.' }, { status: 400 })
   }
@@ -118,7 +115,6 @@ export async function POST(request: Request) {
       keepPdf,
       keepVideoNames,
     })
-    if ('error' in slot) return NextResponse.json({ error: slot.error }, { status: 400 })
     return NextResponse.json({ id: slot.id }, { status: 201 })
   } catch (err) {
     console.error('upload failed', err)
