@@ -3,6 +3,7 @@ import { getPresentation, removePresentation, updatePresentation } from '@/lib/d
 import { deleteFolder, deleteStoredFiles } from '@/lib/storage'
 import { slotUrls } from '@/lib/slots'
 import { sanitizeSegment } from '@/lib/meeting.mjs'
+import type { StoredFile } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,7 @@ export async function PATCH(
   if (!presentation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const files = [presentation.pdf, ...presentation.videos].filter(
-    (file): file is NonNullable<typeof file> => Boolean(file),
+    (file): file is StoredFile => file !== null,
   )
 
   const updated = await updatePresentation(id, { pdf: null, videos: [] })

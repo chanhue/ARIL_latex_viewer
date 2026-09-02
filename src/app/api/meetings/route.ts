@@ -31,7 +31,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
   }
 
-  const kind: MeetingKind = isMeetingKind(payload.kind) ? payload.kind : 'meeting'
+  // The cast is redundant when the JSDoc predicate is honoured and load-bearing
+  // when it is not; either way the check above is what makes it true.
+  const kind: MeetingKind = isMeetingKind(payload.kind)
+    ? (payload.kind as MeetingKind)
+    : 'meeting'
   const date = String(payload.date ?? '').trim()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: '날짜를 골라 주세요.' }, { status: 400 })

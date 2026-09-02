@@ -31,7 +31,13 @@ export const MEETING_KINDS = ['meeting', 'seminar']
 
 const KIND_LABELS = { meeting: 'LAB Meeting', seminar: 'LAB Seminar' }
 
-/** @param {unknown} kind */
+/**
+ * A type predicate, so TypeScript callers narrow rather than being left with
+ * `unknown`.
+ *
+ * @param {unknown} kind
+ * @returns {kind is 'meeting' | 'seminar'}
+ */
 export function isMeetingKind(kind) {
   return typeof kind === 'string' && MEETING_KINDS.includes(kind)
 }
