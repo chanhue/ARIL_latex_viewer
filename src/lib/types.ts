@@ -42,6 +42,11 @@ export type MeetingSummary = Meeting & {
   /** How many people have a slot, and how many of those have uploaded. */
   slotCount: number
   uploadedCount: number
+  /**
+   * Only the people who actually uploaded — this is what the meeting list
+   * shows, so it has to agree with `uploadedCount`. Empty slots are visible on
+   * the meeting page itself, where you can do something about them.
+   */
   presenters: string[]
 }
 

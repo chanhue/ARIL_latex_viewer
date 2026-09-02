@@ -25,18 +25,12 @@ export default async function HomePage() {
               <Link href={`/m/${meeting.id}`}>
                 <span className="meeting-title">{meeting.title}</span>
                 <span className="meeting-meta">
-                  {meeting.slotCount === 0 ? (
+                  {meeting.uploadedCount === 0 ? (
                     <em className="pending">발표자 없음</em>
                   ) : (
                     <>
                       <span className="meeting-people">{meeting.presenters.join(', ')}</span>
-                      {meeting.uploadedCount < meeting.slotCount ? (
-                        <em className="pending">
-                          {meeting.slotCount - meeting.uploadedCount}명 미제출
-                        </em>
-                      ) : (
-                        <em className="done">전원 제출</em>
-                      )}
+                      <em className="done">발표자 {meeting.uploadedCount}명</em>
                     </>
                   )}
                 </span>

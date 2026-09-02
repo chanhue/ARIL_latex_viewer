@@ -74,11 +74,15 @@ export async function listMeetings(): Promise<MeetingSummary[]> {
     )
     .map((meeting) => {
       const slots = presentations.filter((p) => p.meetingId === meeting.id)
+      const uploaded = slots.filter((p) => p.pdf)
       return {
         ...meeting,
         slotCount: slots.length,
-        uploadedCount: slots.filter((p) => p.pdf).length,
-        presenters: slots.map((p) => p.presenter),
+        uploadedCount: uploaded.length,
+        // Only people who actually uploaded. The list and the count on the
+        // meeting list have to agree, and empty slots belong on the meeting
+        // page where you can act on them.
+        presenters: uploaded.map((p) => p.presenter),
       }
     })
 }

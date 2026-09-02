@@ -185,7 +185,8 @@ export async function listMeetings(): Promise<MeetingSummary[]> {
       SELECT meeting_id,
              COUNT(*)                              AS slot_count,
              COUNT(pdf)                            AS uploaded_count,
-             ARRAY_AGG(presenter ORDER BY created_at) AS presenters
+             ARRAY_AGG(presenter ORDER BY created_at)
+               FILTER (WHERE pdf IS NOT NULL)         AS presenters
       FROM presentations
       GROUP BY meeting_id
     ) p ON p.meeting_id = m.id
