@@ -64,7 +64,7 @@ export default function LoginPage() {
   return (
     <div className="page page-narrow login-page">
       <div className="page-head">
-        <h1>ARIL 랩미팅</h1>
+        <h1>ARI LAB 랩미팅</h1>
         <p>랩에서 공유하는 비밀번호를 입력하세요.</p>
       </div>
       {/* useSearchParams needs a Suspense boundary during prerender. */}
