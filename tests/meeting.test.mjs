@@ -158,3 +158,44 @@ test('meetingTitleFor names seminars separately', async () => {
   assert.equal(isMeetingKind('workshop'), false)
   assert.equal(isMeetingKind(null), false)
 })
+
+test('shuffleOrder returns a permutation and leaves the input alone', async () => {
+  const { shuffleOrder } = await import('../src/lib/meeting.mjs')
+
+  const names = ['가', '나', '다', '라', '마']
+  const frozen = [...names]
+  const drawn = shuffleOrder(names)
+
+  assert.deepEqual(names, frozen, 'input must not be mutated')
+  assert.equal(drawn.length, names.length)
+  assert.deepEqual([...drawn].sort(), [...names].sort(), 'same members, reordered')
+})
+
+test('shuffleOrder handles trivial inputs', async () => {
+  const { shuffleOrder } = await import('../src/lib/meeting.mjs')
+  assert.deepEqual(shuffleOrder([]), [])
+  assert.deepEqual(shuffleOrder(['혼자']), ['혼자'])
+  assert.deepEqual(shuffleOrder(null), [])
+})
+
+test('shuffleOrder actually reorders, given a real spread of randomness', async () => {
+  const { shuffleOrder } = await import('../src/lib/meeting.mjs')
+
+  const names = ['a', 'b', 'c', 'd', 'e', 'f']
+  // Every position should be reachable by every name over many draws; a shuffle
+  // that quietly returned its input would fail this.
+  const seenFirst = new Set()
+  for (let i = 0; i < 400; i += 1) seenFirst.add(shuffleOrder(names)[0])
+  assert.equal(seenFirst.size, names.length, 'every name should lead at least once')
+})
+
+test('shuffleOrder with a fixed RNG is deterministic', async () => {
+  const { shuffleOrder } = await import('../src/lib/meeting.mjs')
+
+  // Always picking index 0 rotates the list in a fixed way.
+  const always0 = () => 0
+  assert.deepEqual(shuffleOrder(['a', 'b', 'c'], always0), ['b', 'c', 'a'])
+  // A generator just under 1 always picks the last available slot, a no-op.
+  const almost1 = () => 0.999999
+  assert.deepEqual(shuffleOrder(['a', 'b', 'c'], almost1), ['a', 'b', 'c'])
+})

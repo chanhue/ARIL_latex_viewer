@@ -141,3 +141,23 @@ export function normalizeMembers(input) {
   }
   return { members }
 }
+
+/**
+ * Fisher-Yates shuffle with an injectable source of randomness.
+ *
+ * The RNG is a parameter so the draw can be tested for what actually matters —
+ * that it is a permutation, that it does not favour the input order — rather
+ * than being untestable because it reaches for Math.random directly.
+ *
+ * @param {string[]} names
+ * @param {() => number} random returns [0, 1)
+ * @returns {string[]} a new array; the input is untouched
+ */
+export function shuffleOrder(names, random = Math.random) {
+  const result = Array.isArray(names) ? names.slice() : []
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}

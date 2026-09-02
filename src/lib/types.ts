@@ -26,6 +26,11 @@ export type Meeting = {
   title: string
   /** Storage path prefix, sanitised from the title. */
   folder: string
+  /**
+   * Presenter names in the order they will speak, empty until someone draws it.
+   * Stored rather than computed so everyone in the room sees the same list.
+   */
+  order: string[]
   createdAt: string
 }
 

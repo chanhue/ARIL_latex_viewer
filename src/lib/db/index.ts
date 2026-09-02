@@ -23,6 +23,7 @@ type Backend = {
   getMeeting: (id: string) => Promise<Meeting | null>
   meetingTitles: () => Promise<string[]>
   addMeeting: (meeting: Meeting) => Promise<Meeting>
+  setMeetingOrder: (id: string, order: string[]) => Promise<Meeting | null>
   removeMeeting: (
     id: string,
   ) => Promise<{ meeting: Meeting; presentations: Presentation[] } | null>
@@ -65,6 +66,10 @@ export async function meetingTitles() {
 
 export async function addMeeting(meeting: Meeting) {
   return (await backend()).addMeeting(meeting)
+}
+
+export async function setMeetingOrder(id: string, order: string[]) {
+  return (await backend()).setMeetingOrder(id, order)
 }
 
 export async function removeMeeting(id: string) {

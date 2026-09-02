@@ -32,9 +32,11 @@ async function readAll(): Promise<Shape> {
     const parsed = JSON.parse(raw) as Partial<Shape>
     return {
       // Records written before seminars existed have no kind.
+      // Records written before these fields existed carry neither.
       meetings: (parsed.meetings ?? []).map((meeting) => ({
         ...meeting,
         kind: meeting.kind ?? 'meeting',
+        order: meeting.order ?? [],
       })),
       presentations: parsed.presentations ?? [],
       template: parsed.template ?? [],
@@ -95,6 +97,15 @@ export async function meetingTitles(): Promise<string[]> {
 export async function addMeeting(meeting: Meeting): Promise<Meeting> {
   return transact((data) => {
     data.meetings.push(meeting)
+    return meeting
+  })
+}
+
+export async function setMeetingOrder(id: string, order: string[]): Promise<Meeting | null> {
+  return transact((data) => {
+    const meeting = data.meetings.find((m) => m.id === id)
+    if (!meeting) return null
+    meeting.order = order
     return meeting
   })
 }

@@ -191,7 +191,80 @@ body:has(.login-page) .site-header nav { display: none; }
   font-size: 36px;
   line-height: 1.15;
 }
+.section-head p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
 .page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+
+/* Drawn speaking order, shown as a strip above the slot list so it is readable
+   from across the room without opening another page. */
+.order-strip {
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.order-strip li {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 18px 9px 9px;
+  border-radius: var(--pill);
+  background: var(--surface);
+  box-shadow: var(--card);
+  font-weight: 700;
+}
+.order-no {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Order page */
+
+.order-picker { display: grid; gap: 24px; }
+
+.check-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.check-list label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--card);
+  cursor: pointer;
+  transition: box-shadow 0.16s;
+}
+.check-list label:hover { box-shadow: var(--shadow); }
+.check-list label.on { box-shadow: 0 0 0 2px var(--accent) inset, var(--card); }
+.check-list input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.check-name { font-size: 16px; font-weight: 700; }
+.check-note {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.order-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.order-list li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--card);
+}
+.order-list .order-no { width: 30px; height: 30px; font-size: 14px; }
+.order-name { font-size: 19px; font-weight: 700; }
 
 .empty {
   border-radius: var(--radius);
