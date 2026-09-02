@@ -149,7 +149,7 @@ body:has(.login-page) .site-header nav { display: none; }
 
 .page { width: 100%; max-width: 940px; margin: 0 auto; padding: 64px 48px 96px; }
 .page-narrow { max-width: 620px; }
-.page-wide { max-width: 1180px; }
+.page-wide { max-width: 1320px; }
 
 .page-head h1 {
   margin: 0 0 12px;
@@ -173,7 +173,7 @@ body:has(.login-page) .site-header nav { display: none; }
 .home-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 56px;
+  gap: 64px;
   align-items: start;
 }
 
@@ -183,13 +183,13 @@ body:has(.login-page) .site-header nav { display: none; }
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 .section-head h1,
 .section-head h2 {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.2;
+  font-size: 36px;
+  line-height: 1.15;
 }
 .page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 
@@ -197,11 +197,11 @@ body:has(.login-page) .site-header nav { display: none; }
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--card);
-  padding: 52px 24px;
+  padding: 64px 24px;
   text-align: center;
   color: var(--text-2);
 }
-.empty p { margin: 0; font-family: var(--serif); font-size: 16px; }
+.empty p { margin: 0; font-family: var(--serif); font-size: 17px; }
 
 /* Meeting list */
 
@@ -211,14 +211,14 @@ body:has(.login-page) .site-header nav { display: none; }
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 22px 26px;
+  padding: 26px 30px;
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--card);
   transition: box-shadow 0.18s, transform 0.18s;
 }
 .meeting-list a:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
-.meeting-title { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.meeting-title { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
 .meeting-meta { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
 .meeting-meta em {
   font-style: normal;
@@ -707,7 +707,7 @@ body:has(.login-page) .site-header nav { display: none; }
   .site-header { padding: 18px 22px; }
   .page { padding: 40px 22px 72px; }
   .page-head h1 { font-size: 32px; }
-  .section-head h1, .section-head h2 { font-size: 24px; }
+  .section-head h1, .section-head h2 { font-size: 28px; }
   .viewer-head { padding: 16px 22px; }
   .meeting-list a, .slot-list li { flex-direction: column; align-items: flex-start; gap: 12px; }
   .field-row { grid-template-columns: 1fr; }
