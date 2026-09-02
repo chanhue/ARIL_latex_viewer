@@ -20,6 +20,9 @@ type Overlay = {
 
 type Status = 'loading' | 'ready' | 'error'
 
+/** How close to the bottom edge the pointer must come to raise the bar. */
+const REVEAL_ZONE = 96
+
 /**
  * Renders the PDF ourselves with pdf.js rather than handing it to the browser's
  * viewer, because that is the only way to reach the link annotations and swap
@@ -46,6 +49,7 @@ export function Deck({
   const [overview, setOverview] = useState(false)
   const [lightbox, setLightbox] = useState<{ src: string; name: string } | null>(null)
   const [hintVisible, setHintVisible] = useState(false)
+  const [barPeek, setBarPeek] = useState(false)
 
   const rootRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -262,9 +266,31 @@ export function Deck({
     setStageSize(next)
   }, [])
 
+  /**
+   * In presentation mode the control bar sits off the bottom edge and comes
+   * back when the pointer nears it.
+   *
+   * Tracking the pointer rather than putting a hover strip over the bottom of
+   * the slide: a strip would swallow clicks aimed at a video that happens to
+   * sit low on the page, and making it click-through would stop :hover firing.
+   */
+  useEffect(() => {
+    if (!presenting) {
+      setBarPeek(false)
+      return
+    }
+
+    const onMove = (event: MouseEvent) => {
+      setBarPeek(event.clientY >= window.innerHeight - REVEAL_ZONE)
+    }
+    window.addEventListener('mousemove', onMove)
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [presenting])
+
   useEffect(() => {
     const onChange = () => {
       setPresenting(Boolean(document.fullscreenElement))
+      setBarPeek(false)
       // The ResizeObserver catches this too, but only after the browser has
       // laid out the fullscreen element and React has dropped the stage's
       // padding — long enough to show one frame of the slide at its old,
@@ -441,7 +467,7 @@ export function Deck({
         />
       </div>
 
-      <div className="deck-bar">
+      <div className={`deck-bar${presenting && barPeek ? ' peek' : ''}`}>
         <div className="deck-bar-left">
           <button type="button" onClick={() => go(-1)} disabled={page <= 1}>←</button>
           <span className="deck-counter">
