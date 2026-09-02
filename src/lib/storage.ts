@@ -1,0 +1,66 @@
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
+
+/**
+ * Two backends behind one interface:
+ *   - local disk  (default, no configuration, what `npm run dev` uses)
+ *   - Vercel Blob (when BLOB_READ_WRITE_TOKEN is present)
+ *
+ * Everything else in the app only ever sees the returned public URL, so the
+ * two are interchangeable.
+ */
+
+const DATA_DIR = path.join(process.cwd(), '.data')
+const BLOB_DIR = path.join(DATA_DIR, 'blobs')
+
+export const usingVercelBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
+
+/** Strip anything that could escape the storage directory. */
+export function safeFileName(name: string): string {
+  const base = path
+    .basename(String(name))
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .replace(/[/\\]/g, '')
+  const cleaned = base.replace(/^\.+/, '').trim()
+  return cleaned || 'file'
+}
+
+export async function putFile(
+  key: string,
+  data: Buffer,
+  contentType: string,
+): Promise<string> {
+  if (usingVercelBlob) {
+    // Optional dependency: only needed for a Vercel deployment.
+    const { put } = await import('@vercel/blob')
+    const blob = await put(key, data, {
+      access: 'public',
+      contentType,
+      addRandomSuffix: false,
+    })
+    return blob.url
+  }
+
+  const dest = path.join(BLOB_DIR, key)
+  await fs.mkdir(path.dirname(dest), { recursive: true })
+  await fs.writeFile(dest, data)
+  // Encode each segment so spaces and Hangul survive the round trip.
+  return '/api/files/' + key.split('/').map(encodeURIComponent).join('/')
+}
+
+/** Resolve a stored key to an absolute path, refusing anything outside BLOB_DIR. */
+export function localPathFor(segments: string[]): string | null {
+  const resolved = path.resolve(BLOB_DIR, ...segments)
+  const root = path.resolve(BLOB_DIR)
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) return null
+  return resolved
+}
+
+export async function deletePresentationFiles(id: string, urls: string[]): Promise<void> {
+  if (usingVercelBlob) {
+    const { del } = await import('@vercel/blob')
+    if (urls.length) await del(urls)
+    return
+  }
+  await fs.rm(path.join(BLOB_DIR, id), { recursive: true, force: true })
+}
