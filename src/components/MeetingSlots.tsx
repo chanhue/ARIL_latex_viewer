@@ -47,29 +47,21 @@ export function MeetingSlots({
   }
 
   /**
-   * On a slot with files this clears the files and leaves the name in place;
-   * on an empty slot it removes the person. Emptying is the common case and
-   * the reversible one, so it does not also throw away the fact that this
-   * person is on the schedule.
+   * Clears a slot's files and leaves the name on the schedule. There is no
+   * delete-the-person action here: who is presenting is decided by the roster
+   * template, and a slot going empty is a normal state, not a mistake to be
+   * cleaned up.
    */
-  const clearOrRemove = async (slot: Presentation) => {
-    const filled = Boolean(slot.pdf)
-    const question = filled
-      ? `${slot.presenter}의 자료를 삭제할까요? 이름은 목록에 남습니다.`
-      : `${slot.presenter}을(를) 목록에서 뺄까요?`
-    if (!window.confirm(question)) return
+  const clearFiles = async (slot: Presentation) => {
+    if (!window.confirm(`${slot.presenter}의 자료를 삭제할까요?`)) return
 
     setBusy(true)
     try {
-      if (filled) {
-        await fetch(`/api/presentations/${slot.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clearFiles: true }),
-        })
-      } else {
-        await fetch(`/api/presentations/${slot.id}`, { method: 'DELETE' })
-      }
+      await fetch(`/api/presentations/${slot.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearFiles: true }),
+      })
       router.refresh()
     } finally {
       setBusy(false)
@@ -119,18 +111,18 @@ export function MeetingSlots({
               >
                 {slot.pdf ? '교체' : '올리기'}
               </Link>
-              <button
-                type="button"
-                className="button icon-button"
-                disabled={busy}
-                onClick={() => clearOrRemove(slot)}
-                aria-label={
-                  slot.pdf ? `${slot.presenter} 자료 삭제` : `${slot.presenter} 목록에서 빼기`
-                }
-                title={slot.pdf ? '자료 삭제 (이름은 남음)' : '목록에서 빼기'}
-              >
-                ✕
-              </button>
+              {slot.pdf && (
+                <button
+                  type="button"
+                  className="button icon-button"
+                  disabled={busy}
+                  onClick={() => clearFiles(slot)}
+                  aria-label={`${slot.presenter} 자료 삭제`}
+                  title="자료 삭제"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </li>
         ))}

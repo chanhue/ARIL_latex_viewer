@@ -17,11 +17,11 @@ export async function GET(
 }
 
 /**
- * Empty a slot without giving up the person's place in the meeting.
+ * Empty a slot, keeping the person on the schedule.
  *
- * Deleting the wrong thing here is annoying to undo — the name has to be
- * retyped and the meeting loses the record that someone was expected to
- * present — so clearing files and removing a person are separate operations.
+ * This is the only destructive action the meeting page offers. Removing a
+ * person is deliberately not one: who presents comes from the roster template,
+ * and an empty slot is a normal state rather than something to tidy away.
  */
 export async function PATCH(
   request: Request,
@@ -59,6 +59,10 @@ export async function PATCH(
   return NextResponse.json({ ok: true })
 }
 
+/**
+ * Not reachable from the meeting page, which only ever clears files. Kept as
+ * the way to undo a name added by mistake, since nothing else can remove one.
+ */
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
