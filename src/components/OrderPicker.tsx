@@ -109,14 +109,14 @@ export function OrderPicker({
       {error && <p className="form-error">{error}</p>}
 
       {order.length > 0 ? (
-        <ol className={`order-list${busy ? ' drawing' : ''}`}>
+        <p className={`order-line${busy ? ' drawing' : ''}`}>
           {order.map((name, index) => (
-            <li key={name}>
-              <span className="order-no">{index + 1}</span>
+            <span key={name} className="order-step">
+              {index > 0 && <span className="order-sep" aria-hidden>&gt;</span>}
               <span className="order-name">{name}</span>
-            </li>
+            </span>
           ))}
-        </ol>
+        </p>
       ) : (
         <p className="order-hint">체크하면 순서가 정해집니다.</p>
       )}

@@ -43,12 +43,18 @@ export default async function HomePage() {
   const seminars = all.filter((item) => item.kind === 'seminar')
 
   return (
-    <div className="page page-wide home-columns">
+    <div className="page page-wide">
+      {/* Deciding who presents is not a property of either list, so it sits
+          above both rather than inside one of them. */}
+      <div className="page-toolbar">
+        <Link href="/order" className="button">진행 여부</Link>
+      </div>
+
+      <div className="home-columns">
       <section className="section">
         <div className="section-head">
           <h1>Lab Meetings</h1>
           <div className="page-actions">
-            <Link href="/order" className="button">진행 여부</Link>
             <Link href="/template" className="button">템플릿</Link>
             <Link
               href="/meetings/new"
@@ -79,6 +85,7 @@ export default async function HomePage() {
         </div>
         <EventList items={seminars} emptyText="No seminars yet." />
       </section>
+      </div>
     </div>
   )
 }

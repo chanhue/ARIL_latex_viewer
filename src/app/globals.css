@@ -150,9 +150,9 @@ body:has(.login-page) .site-header nav { display: none; }
 
 /* -------------------------------------------------------------- pages */
 
-.page { width: 100%; max-width: 940px; margin: 0 auto; padding: 64px 48px 96px; }
-.page-narrow { max-width: 620px; }
-.page-wide { max-width: 1320px; }
+.page { width: 100%; max-width: 1280px; margin: 0 auto; padding: 56px 48px 96px; }
+.page-narrow { max-width: 720px; }
+.page-wide { max-width: 1720px; }
 
 .page-head h1 {
   margin: 0 0 12px;
@@ -196,6 +196,8 @@ body:has(.login-page) .site-header nav { display: none; }
 }
 .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
 
+.page-toolbar { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+
 /* The create action is a plain +; what it creates is said by the heading it
    sits next to. */
 .button-add {
@@ -208,17 +210,6 @@ body:has(.login-page) .site-header nav { display: none; }
 }
 .page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 
-.order-no {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--pill);
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
 
 /* Order page */
 
@@ -261,20 +252,24 @@ body:has(.login-page) .site-header nav { display: none; }
   font-size: 14px;
 }
 
-.order-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-/* A redraw is in flight; dim rather than blank so the list does not jump. */
-.order-list.drawing { opacity: 0.45; transition: opacity 0.12s; }
-.order-list li {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 24px;
+/* The order reads as one sentence — A > B > C — because that is how it gets
+   said out loud. Wrapping keeps it readable when the roster is long. */
+.order-line {
+  margin: 0;
+  padding: 22px 26px;
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--card);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
 }
-.order-list .order-no { width: 30px; height: 30px; font-size: 14px; }
-.order-name { font-size: 19px; font-weight: 700; }
+/* A redraw is in flight; dim rather than blank so the line does not jump. */
+.order-line.drawing { opacity: 0.45; transition: opacity 0.12s; }
+.order-step { display: inline-flex; align-items: center; gap: 14px; }
+.order-sep { color: var(--muted); font-size: 16px; font-weight: 400; }
+.order-name { font-size: 20px; font-weight: 700; }
 
 .empty {
   border-radius: var(--radius);
