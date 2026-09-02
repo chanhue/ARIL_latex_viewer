@@ -13,6 +13,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // Only offer a way out when there is something to log out of.
   const guarded = Boolean(labPassword())
 
+  // Which commit is actually serving this page. "Is my change live yet?" is
+  // otherwise guesswork against a CDN and a build queue; this answers it from
+  // View Source. Vercel sets these automatically.
+  const buildSha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev'
+  const buildRef = process.env.VERCEL_GIT_COMMIT_REF ?? 'local'
+
   return (
     <html lang="ko">
       <head>
@@ -27,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Alice&family=Nunito+Sans:wght@400;600;700;800&display=swap"
         />
+        <meta name="build" content={`${buildRef}@${buildSha}`} />
       </head>
       <body>
         <header className="site-header">
