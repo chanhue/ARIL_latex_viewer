@@ -16,14 +16,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <head>
-        {/* Alice is the heading face on the lab's own site. Loaded with a link
-            rather than next/font so a build without network still succeeds —
-            it simply falls back to Georgia. */}
+        {/* The lab site sets headings in Sofia Pro, which is not free, so
+            Nunito Sans stands in — same rounded geometric feel. Alice is the
+            serif it uses for short supporting lines. Loaded with a link rather
+            than next/font so a build without network still succeeds; the page
+            simply falls back to the system stack. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Alice&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Alice&family=Nunito+Sans:wght@400;600;700;800&display=swap"
         />
       </head>
       <body>
