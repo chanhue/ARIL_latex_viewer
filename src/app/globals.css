@@ -196,8 +196,6 @@ body:has(.login-page) .site-header nav { display: none; }
 }
 .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
 
-.page-toolbar { display: flex; justify-content: flex-end; margin-bottom: 20px; }
-
 /* The create action is a plain +; what it creates is said by the heading it
    sits next to. */
 .button-add {

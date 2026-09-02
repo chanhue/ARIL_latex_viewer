@@ -12,7 +12,7 @@ export default async function OrderPage() {
   const roster = members.slice().sort((a, b) => a.localeCompare(b, 'ko'))
 
   return (
-    <div className="page page-narrow">
+    <div className="page">
       <div className="page-head">
         <h1>진행 여부</h1>
       </div>
