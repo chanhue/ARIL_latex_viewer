@@ -82,10 +82,13 @@ export function UploadForm({
   )
 
   const addVideos = (incoming: FileList | null) => {
-    if (!incoming) return
+    // Snapshot now: the caller clears the input right after this returns, which
+    // empties the live FileList before the state updater below ever runs.
+    const picked = incoming ? Array.from(incoming) : []
+    if (picked.length === 0) return
     setVideos((current) => {
       const next = [...current]
-      for (const file of Array.from(incoming)) {
+      for (const file of picked) {
         // The same name twice would make link matching ambiguous.
         if (!next.some((v) => v.name.toLowerCase() === file.name.toLowerCase())) next.push(file)
       }
