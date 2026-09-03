@@ -395,8 +395,6 @@ export function Deck({
 
   /* --------------------------------------------------------------- view */
 
-  const videoCount = overlays.filter((o) => o.kind === 'video').length
-
   return (
     <div ref={rootRef} className={`deck${presenting ? ' presenting' : ''}`}>
       <div className="deck-stage-wrap">
@@ -505,7 +503,6 @@ export function Deck({
         </div>
 
         <div className="deck-bar-right">
-          {videoCount > 0 && <span className="deck-tag">이 슬라이드 영상 {videoCount}개</span>}
           <button type="button" onClick={() => setOverview(true)}>슬라이드 목록</button>
           <button type="button" className="deck-primary" onClick={() => void togglePresent()}>
             {presenting ? '발표 종료' : '발표 모드'}

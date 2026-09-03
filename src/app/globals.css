@@ -630,15 +630,6 @@ body:has(.login-page) .site-header nav { display: none; }
   font: inherit;
   font-variant-numeric: tabular-nums;
 }
-.deck-tag {
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  background: rgba(46, 123, 255, 0.9);
-  border-radius: var(--pill);
-  padding: 5px 14px;
-}
-
 /* Presentation mode: the deck is the fullscreen element */
 
 .deck.presenting { background: #000; }
