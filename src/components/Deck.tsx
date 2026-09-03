@@ -56,6 +56,8 @@ export function Deck({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const renderTaskRef = useRef<any>(null)
   const stageSizeRef = useRef({ w: 0, h: 0 })
+  // 'nested-video' while a video sits fullscreen on top of the fullscreen deck.
+  const lastFullscreenRef = useRef<'nested-video' | null>(null)
   const [stageSize, setStageSize] = useState({ w: 0, h: 0 })
 
   // Match by file name, so the author writes `\href{demo.mp4}` and uploads
@@ -292,7 +294,7 @@ export function Deck({
   }, [presenting])
 
   useEffect(() => {
-    const onChange = () => {
+    const settle = () => {
       setPresenting(Boolean(document.fullscreenElement))
       setBarPeek(false)
       // The ResizeObserver catches this too, but only after the browser has
@@ -304,6 +306,25 @@ export function Deck({
         measureStage()
         requestAnimationFrame(measureStage)
       })
+    }
+
+    const onChange = () => {
+      const element = document.fullscreenElement
+      const wasNested = lastFullscreenRef.current === 'nested-video'
+      lastFullscreenRef.current =
+        element && element !== rootRef.current && rootRef.current?.contains(element)
+          ? 'nested-video'
+          : null
+
+      // Firefox ignores controlsList, so a video can still go fullscreen on top
+      // of the deck there. Esc then leaves fullscreen altogether rather than
+      // stepping back to the slide, so ask for the deck's fullscreen again.
+      // A browser that wants a fresh gesture refuses, and we settle as usual.
+      if (!element && wasNested && rootRef.current) {
+        rootRef.current.requestFullscreen().catch(settle)
+        return
+      }
+      settle()
     }
     document.addEventListener('fullscreenchange', onChange)
     return () => document.removeEventListener('fullscreenchange', onChange)
@@ -428,11 +449,17 @@ export function Deck({
                   style={style}
                   src={overlay.src}
                   controls
+                  // No native fullscreen button: putting the video fullscreen
+                  // on top of the already-fullscreen deck nests one inside the
+                  // other, and Esc leaves both — dropping out of the talk. The
+                  // lightbox below does the same job inside the deck.
+                  controlsList="nofullscreen"
                   playsInline
                   preload="metadata"
                   autoPlay={overlay.opts.autoplay}
                   loop={overlay.opts.loop}
                   muted={overlay.opts.muted}
+                  title={`${overlay.name} · 더블클릭하면 크게 보기`}
                   onDoubleClick={() => setLightbox({ src: overlay.src, name: overlay.name })}
                 />
               )
