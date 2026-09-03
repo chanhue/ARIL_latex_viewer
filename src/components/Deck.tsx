@@ -316,10 +316,12 @@ export function Deck({
           ? 'nested-video'
           : null
 
-      // Firefox ignores controlsList, so a video can still go fullscreen on top
-      // of the deck there. Esc then leaves fullscreen altogether rather than
-      // stepping back to the slide, so ask for the deck's fullscreen again.
-      // A browser that wants a fresh gesture refuses, and we settle as usual.
+      // A video put fullscreen from inside the fullscreen deck nests one in the
+      // other, and Esc is spec'd to fully exit — both levels at once, so the
+      // talk drops out of presentation. Esc itself is the browser's and never
+      // reaches us, so the recovery is to ask for the deck's fullscreen back as
+      // soon as we see it go. A browser that insists on a fresh gesture refuses
+      // (Chrome may), and we settle as usual.
       if (!element && wasNested && rootRef.current) {
         rootRef.current.requestFullscreen().catch(settle)
         return
@@ -447,11 +449,6 @@ export function Deck({
                   style={style}
                   src={overlay.src}
                   controls
-                  // No native fullscreen button: putting the video fullscreen
-                  // on top of the already-fullscreen deck nests one inside the
-                  // other, and Esc leaves both — dropping out of the talk. The
-                  // lightbox below does the same job inside the deck.
-                  controlsList="nofullscreen"
                   playsInline
                   preload="metadata"
                   autoPlay={overlay.opts.autoplay}
