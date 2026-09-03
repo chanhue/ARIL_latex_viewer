@@ -4,7 +4,7 @@ import {
   linkBasename,
   isVideoLink,
   resolveLink,
-  isInlineSize,
+  playerBox,
 } from '../src/lib/link-match.mjs'
 
 const videos = [
@@ -71,14 +71,35 @@ test('resolveLink drops unresolvable local-file links', () => {
   assert.equal(resolveLink('', videos), null)
 })
 
-test('isInlineSize separates a placeholder box from a word-sized link', () => {
+test('playerBox leaves a placeholder-sized link alone', () => {
   // 60% x 45% of the slide: a real placeholder image.
-  assert.equal(isInlineSize(576, 243, 960, 540), true)
-  // A hyperlinked word.
-  assert.equal(isInlineSize(80, 14, 960, 540), false)
-  // Wide but only a line tall (a hyperlinked caption) stays a badge.
-  assert.equal(isInlineSize(600, 16, 960, 540), false)
-  assert.equal(isInlineSize(100, 100, 0, 0), false)
+  const box = playerBox({ left: 100, top: 100, width: 576, height: 243 }, 960, 540)
+  assert.deepEqual(box, { left: 100, top: 100, width: 576, height: 243, grown: false })
+})
+
+test('playerBox grows a word-sized link around its own centre', () => {
+  // A hyperlinked word in the middle of the slide.
+  const box = playerBox({ left: 440, top: 263, width: 80, height: 14 }, 960, 540)
+  assert.equal(box.grown, true)
+  assert.equal(box.width, 288) // 30% of the slide width
+  assert.equal(box.height, 162) // 16:9 of that
+  // Still centred on the link.
+  assert.equal(box.left + box.width / 2, 480)
+  assert.equal(box.top + box.height / 2, 270)
+})
+
+test('playerBox keeps a grown box inside the slide', () => {
+  // A hyperlinked caption hard against the bottom-right corner.
+  const box = playerBox({ left: 900, top: 520, width: 56, height: 14 }, 960, 540)
+  assert.equal(box.grown, true)
+  assert.equal(box.left + box.width, 960)
+  assert.equal(box.top + box.height, 540)
+  assert.ok(box.left >= 0 && box.top >= 0)
+})
+
+test('playerBox passes the rect through when the slide has no size yet', () => {
+  const rect = { left: 10, top: 10, width: 100, height: 100 }
+  assert.deepEqual(playerBox(rect, 0, 0), { ...rect, grown: false })
 })
 
 test('videoOptions reads playback flags from the link', async () => {

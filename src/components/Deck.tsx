@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { isInlineSize, resolveLink, videoOptions } from '@/lib/link-match.mjs'
+import { playerBox, resolveLink, videoOptions } from '@/lib/link-match.mjs'
 import type { Presentation, StoredFile } from '@/lib/types'
 import { PageThumb } from './PageThumb'
 
@@ -14,7 +14,7 @@ type Overlay = {
   width: number
   height: number
 } & (
-  | { kind: 'video'; src: string; name: string; inline: boolean; opts: ReturnType<typeof videoOptions> }
+  | { kind: 'video'; src: string; name: string; grown: boolean; opts: ReturnType<typeof videoOptions> }
   | { kind: 'link'; href: string }
 )
 
@@ -175,17 +175,21 @@ export function Deck({
         if (width < 2 || height < 2) continue
 
         if (resolved.kind === 'video') {
+          // A word-sized link cannot host a player at its own size, but the
+          // author still meant "here" — grow the box around the link instead of
+          // sending the clip off to a separate window.
+          const box = playerBox(
+            { left, top, width, height },
+            viewport.width,
+            viewport.height,
+          )
           found.push({
             key: `${annotation.id}`,
-            left,
-            top,
-            width,
-            height,
+            ...box,
             kind: 'video',
             src: resolved.src,
             name: resolved.name,
             opts: videoOptions(raw ?? ''),
-            inline: isInlineSize(width, height, viewport.width, viewport.height),
           })
         } else {
           found.push({ key: `${annotation.id}`, left, top, width, height, kind: 'link', href: resolved.href })
@@ -413,27 +417,14 @@ export function Deck({
                 )
               }
 
-              if (!overlay.inline) {
-                return (
-                  <button
-                    key={overlay.key}
-                    type="button"
-                    className="deck-badge"
-                    style={style}
-                    onClick={() => setLightbox({ src: overlay.src, name: overlay.name })}
-                    title={`${overlay.name} 재생`}
-                  >
-                    <span aria-hidden>▶</span>
-                  </button>
-                )
-              }
-
               return (
                 <video
                   // Keyed by page as well so switching slides tears the element
                   // down — that is what stops the audio of the previous clip.
                   key={`${page}:${overlay.key}`}
-                  className="deck-video"
+                  // A grown box sits on top of the slide rather than filling a
+                  // space the author left for it, so it gets an edge.
+                  className={`deck-video${overlay.grown ? ' grown' : ''}`}
                   style={style}
                   src={overlay.src}
                   controls

@@ -94,13 +94,45 @@ export function resolveLink(rawUrl, videos = []) {
 }
 
 /**
- * A link drawn around a word is far too small to host a player. Above this
- * size we inline the video; below it we drop a badge that opens a lightbox.
- * Measured against the rendered slide, so it scales with the viewport.
+ * Smallest player we are willing to draw, as a fraction of the slide width.
+ * A 16:9 box at this width is about a quarter of the slide — big enough to
+ * watch, small enough not to swallow the surrounding text.
  */
-export function isInlineSize(width, height, slideWidth, slideHeight) {
-  if (!(slideWidth > 0) || !(slideHeight > 0)) return false
-  return width / slideWidth >= 0.12 && height / slideHeight >= 0.12
+const MIN_PLAYER_WIDTH = 0.3
+
+/**
+ * Where the player for one link actually goes.
+ *
+ * A link drawn around a word is far too small to host a player, but the author
+ * still meant "play it here" — so instead of sending it off to a lightbox, the
+ * box grows around the link's own centre up to a usable minimum and is then
+ * clamped back inside the slide. Big links (a thumbnail, a placeholder frame)
+ * come back untouched.
+ *
+ * @returns {{left:number, top:number, width:number, height:number, grown:boolean}}
+ */
+export function playerBox(rect, slideWidth, slideHeight) {
+  const { left, top, width, height } = rect
+  if (!(slideWidth > 0) || !(slideHeight > 0)) {
+    return { left, top, width, height, grown: false }
+  }
+
+  const minWidth = Math.min(slideWidth, slideWidth * MIN_PLAYER_WIDTH)
+  const minHeight = Math.min(slideHeight, (minWidth * 9) / 16)
+  if (width >= minWidth && height >= minHeight) {
+    return { left, top, width, height, grown: false }
+  }
+
+  const w = Math.max(width, minWidth)
+  const h = Math.max(height, minHeight)
+  const clamp = (value, span, limit) => Math.max(0, Math.min(value, limit - span))
+  return {
+    left: clamp(left + width / 2 - w / 2, w, slideWidth),
+    top: clamp(top + height / 2 - h / 2, h, slideHeight),
+    width: w,
+    height: h,
+    grown: true,
+  }
 }
 
 /**

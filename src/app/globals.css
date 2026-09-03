@@ -548,6 +548,9 @@ body:has(.login-page) .site-header nav { display: none; }
   border-radius: 3px;
   outline: 2px solid rgba(46, 123, 255, 0.55);
 }
+/* Grown past the author's link rectangle: it covers slide content, so lift it
+   off the page instead of letting it look like part of the layout. */
+.deck-video.grown { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
 
 .deck-link {
   position: absolute;
@@ -556,22 +559,6 @@ body:has(.login-page) .site-header nav { display: none; }
   transition: background 0.16s;
 }
 .deck-link:hover { background: rgba(46, 123, 255, 0.24); }
-
-.deck-badge {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  min-width: 28px;
-  padding: 0;
-  border: none;
-  border-radius: var(--pill);
-  background: var(--accent);
-  color: #fff;
-  font-size: 11px;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(46, 123, 255, 0.5);
-}
-.deck-badge:hover { background: var(--accent-hover); }
 
 .deck-blackout { position: absolute; inset: 0; background: #000; cursor: pointer; }
 
